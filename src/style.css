@@ -36,46 +36,90 @@ body { min-height: 100vh; }
 
 #app { max-width: 900px; margin: 0 auto; padding: 1.5rem; }
 
-header {
-  text-align: center;
-  padding: 2rem 0 1.5rem;
-  border-bottom: 1px solid var(--border);
-  margin-bottom: 2rem;
-}
-
-header h1 {
+.page-header h1 {
   font-size: 1.7rem;
   font-weight: 700;
   letter-spacing: -0.02em;
 }
 
-header h1 .ed { color: var(--ed-color); }
-header h1 .pq { color: var(--pq-color); }
-header h1 .plus { color: var(--text-muted); }
+.page-header h1 .ed { color: var(--ed-color); }
+.page-header h1 .pq { color: var(--pq-color); }
+.page-header h1 .plus { color: var(--text-muted); }
 
-header p {
+.page-header p {
   color: var(--text-muted);
   margin-top: 0.4rem;
   font-size: 0.9rem;
 }
 
-/* ── Theme toggle ──────────────────────────────────────────────────────── */
-.theme-btn {
-  position: fixed;
-  top: 1rem;
-  right: 1rem;
+/* ── Skip link ─────────────────────────────────────────────────────────── */
+.skip-link { position: absolute; top: -100%; left: 1rem; background: var(--pq-color); color: #fff; padding: 0.5rem 1rem; border-radius: 6px; z-index: 200; font-size: 0.85rem; text-decoration: none; }
+.skip-link:focus { top: 0.5rem; }
+
+/* ── Topbar (cl-header) ─────────────────────────────────────────────────── */
+.cl-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.6rem 1rem;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  backdrop-filter: blur(6px);
+}
+.cl-header-left { display: flex; align-items: center; gap: 0.6rem; }
+.cl-badge {
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 0.2rem 0.45rem;
+  color: var(--text);
+  background: var(--surface2);
+}
+.cl-header-text { display: flex; flex-direction: column; line-height: 1.2; }
+.cl-title { font-size: 0.7rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-muted); }
+.cl-sub { font-size: 0.65rem; color: var(--text-muted); text-decoration: none; }
+.cl-sub:hover { color: var(--text); }
+.cl-header-nav { display: flex; align-items: center; gap: 0.5rem; }
+.cl-nav-btn {
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  text-decoration: none;
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  padding: 0.3rem 0.7rem;
+  background: var(--surface2);
+  transition: border-color 0.2s;
+}
+.cl-nav-btn:hover { border-color: var(--pq-color); }
+.cl-theme-toggle {
   background: var(--surface2);
   border: 1px solid var(--border);
   color: var(--text);
-  padding: 0.4rem 0.75rem;
-  border-radius: 6px;
+  border-radius: 5px;
+  padding: 0.3rem 0.6rem;
   cursor: pointer;
-  font-size: 0.85rem;
-  min-height: 44px;
-  min-width: 44px;
-  touch-action: manipulation;
+  font-size: 0.9rem;
+  min-height: 36px;
+  min-width: 36px;
+  line-height: 1;
 }
-.theme-btn:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
+.cl-theme-toggle:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
+
+/* ── Page header (demo title) ───────────────────────────────────────────── */
+.page-header {
+  text-align: center;
+  padding: 2rem 0 1.5rem;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 2rem;
+}
 
 /* ── Exhibit card ──────────────────────────────────────────────────────── */
 .exhibit {

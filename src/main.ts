@@ -62,16 +62,29 @@ let currentSignature: Uint8Array | null = null;
 function renderApp(): void {
   const app = document.getElementById('app')!;
   app.innerHTML = `
-<button class="theme-btn" id="theme-toggle" aria-label="Toggle light/dark theme"><span aria-hidden="true">☀ / ☾</span></button>
+<a href="#main-content" class="skip-link">Skip to main content</a>
+<header class="cl-header">
+  <div class="cl-header-left">
+    <div class="cl-badge">CL</div>
+    <div class="cl-header-text">
+      <span class="cl-title">CRYPTO LAB</span>
+      <a class="cl-sub" href="https://systemslibrarian.dev" target="_blank" rel="noopener">systemslibrarian.dev</a>
+    </div>
+  </div>
+  <nav class="cl-header-nav">
+    <a class="cl-nav-btn" href="https://github.com/systemslibrarian/crypto-lab-hybrid-sign" target="_blank" rel="noopener">GitHub</a>
+    <button class="cl-theme-toggle" id="theme-toggle" aria-label="Toggle light/dark theme">&#9728;</button>
+  </nav>
+</header>
 
-<header>
+<div id="main-content" class="page-header">
   <h1>
     <span class="ed">Ed25519</span>
     <span class="plus"> + </span>
     <span class="pq">ML-DSA-65</span>
   </h1>
   <p>PQ/T Composite Signatures &bull; IETF LAMPS draft-ietf-lamps-pq-composite-sigs-16 &bull; TLS codepoint 0x090B</p>
-</header>
+</div>
 
 <!-- ── Exhibit 1: Keypair ── -->
 <section class="exhibit" id="exhibit1">
