@@ -8,10 +8,10 @@
       const saved = localStorage.getItem('theme');
       document.documentElement.setAttribute('data-theme', saved ?? 'dark');
     </script>
-    <link rel="stylesheet" href="/src/style.css" />
+    <meta name="description" content="Browser-based PQ/T composite signature demo — Ed25519 + ML-DSA-65 hybrid per IETF LAMPS draft-16. Both algorithms must verify. Defense against either a lattice break or quantum computers." />
   </head>
   <body>
-    <div id="app"></div>
+    <div id="app" role="main"></div>
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>

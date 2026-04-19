@@ -8,6 +8,8 @@
   --border: #2a2a3a;
   --text: #e8e8f0;
   --text-muted: #8888a8;
+  --focus-ring: #ffd700;
+  -webkit-text-size-adjust: 100%;
   --ed-color: #00d4ff;      /* Ed25519 — classical cyan */
   --pq-color: #9d4edd;      /* ML-DSA-65 — PQ purple */
   --composite-ok: #ffd700;  /* Both pass — gold */
@@ -26,7 +28,7 @@
   --surface2: #eeeef6;
   --border: #ccccdd;
   --text: #1a1a2e;
-  --text-muted: #5555770;
+  --text-muted: #555577;
 }
 
 /* ── Layout ────────────────────────────────────────────────────────────── */
@@ -69,7 +71,11 @@ header p {
   border-radius: 6px;
   cursor: pointer;
   font-size: 0.85rem;
+  min-height: 44px;
+  min-width: 44px;
+  touch-action: manipulation;
 }
+.theme-btn:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
 
 /* ── Exhibit card ──────────────────────────────────────────────────────── */
 .exhibit {
@@ -185,8 +191,11 @@ header p {
   font-weight: 600;
   cursor: pointer;
   transition: opacity 0.15s;
+  min-height: 44px;
+  touch-action: manipulation;
 }
-.btn:hover { opacity: 0.85; }
+.btn:hover:not(:disabled) { opacity: 0.85; }
+.btn:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
 .btn:disabled { opacity: 0.4; cursor: default; }
 
 .btn-primary { background: var(--composite-ok); color: #000; }
@@ -208,8 +217,13 @@ header p {
   border-radius: 6px;
   color: var(--text);
   padding: 0.5rem 0.75rem;
-  font-size: 0.88rem;
+  font-size: 1rem;  /* ≥16px prevents iOS auto-zoom */
   font-family: inherit;
+  min-height: 44px;
+}
+.field input:focus-visible, .field textarea:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
 }
 .field textarea { resize: vertical; min-height: 70px; font-family: monospace; }
 
@@ -268,12 +282,30 @@ header p {
 .scenario h3 { font-size: 0.9rem; margin-bottom: 0.6rem; }
 .scenario .timeline { font-size: 0.78rem; color: var(--text-muted); font-style: italic; margin-bottom: 0.6rem; }
 
+/* ── Screen-reader-only utility ────────────────────────────────────────── */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
 /* ── Comparison table ──────────────────────────────────────────────────── */
+.table-wrap {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  margin-top: 0.8rem;
+}
 .compare-table {
   width: 100%;
+  min-width: 480px;
   border-collapse: collapse;
   font-size: 0.82rem;
-  margin-top: 0.8rem;
 }
 .compare-table th, .compare-table td {
   padding: 0.5rem 0.75rem;
@@ -322,9 +354,12 @@ pre {
   color: var(--composite-ok);
   cursor: pointer;
   font-size: 0.75rem;
-  margin-top: 0.2rem;
-  padding: 0;
+  margin-top: 0.4rem;
+  padding: 0.3rem 0;
+  min-height: 44px;
+  touch-action: manipulation;
 }
+.expand-btn:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
 
 /* ── Info chips ────────────────────────────────────────────────────────── */
 .chip {

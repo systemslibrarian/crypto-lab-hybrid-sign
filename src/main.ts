@@ -49,8 +49,8 @@ function hexDisplay(bytes: Uint8Array, maxBytes = 32): string {
 
 function verifyIcon(ok: boolean): string {
   return ok
-    ? '<span class="lock-icon status-ok">🔒</span>'
-    : '<span class="lock-icon status-fail">🔓</span>';
+    ? '<span class="lock-icon status-ok" aria-hidden="true">🔒</span>'
+    : '<span class="lock-icon status-fail" aria-hidden="true">🔓</span>';
 }
 
 // ── State ──────────────────────────────────────────────────────────────────
@@ -62,7 +62,7 @@ let currentSignature: Uint8Array | null = null;
 function renderApp(): void {
   const app = document.getElementById('app')!;
   app.innerHTML = `
-<button class="theme-btn" id="theme-toggle">☀ / ☾</button>
+<button class="theme-btn" id="theme-toggle" aria-label="Toggle light/dark theme"><span aria-hidden="true">☀ / ☾</span></button>
 
 <header>
   <h1>
@@ -132,19 +132,19 @@ function renderApp(): void {
   </div>
 
   <div class="field">
-    <label>Message</label>
+    <label for="sign-message">Message</label>
     <input type="text" id="sign-message" value="Paul Clark certified 2026" />
   </div>
   <div class="field">
-    <label>Context (optional)</label>
+    <label for="sign-context">Context (optional)</label>
     <input type="text" id="sign-context" placeholder="(leave blank for empty context)" />
   </div>
 
   <div class="btn-row">
-    <button class="btn btn-primary" id="sign-btn" disabled>Sign with Composite</button>
-    <button class="btn btn-neutral" id="verify-btn" disabled>Verify</button>
-    <button class="btn btn-warn" id="tamper-mldsa-btn" disabled>Tamper ML-DSA portion</button>
-    <button class="btn btn-danger" id="tamper-ed-btn" disabled>Tamper Ed25519 portion</button>
+    <button class="btn btn-primary" id="sign-btn" disabled aria-disabled="true">Sign with Composite</button>
+    <button class="btn btn-neutral" id="verify-btn" disabled aria-disabled="true">Verify</button>
+    <button class="btn btn-warn" id="tamper-mldsa-btn" disabled aria-disabled="true">Tamper ML-DSA portion</button>
+    <button class="btn btn-danger" id="tamper-ed-btn" disabled aria-disabled="true">Tamper Ed25519 portion</button>
   </div>
 
   <div id="sign-steps" class="hidden" style="margin-top:1rem">
@@ -158,11 +158,11 @@ function renderApp(): void {
     <div class="field">
       <label>Signature (<span id="sig-len">—</span> bytes)</label>
       <div class="hex-display" id="sig-hex">—</div>
-      <button class="expand-btn" id="expand-sig">Show full signature</button>
+      <button class="expand-btn" id="expand-sig" aria-expanded="false">Show full signature</button>
     </div>
   </div>
 
-  <div id="verify-result" class="hidden">
+  <div id="verify-result" class="hidden" aria-live="polite">
     <div class="verify-panel" id="verify-panel">—</div>
   </div>
 </section>
@@ -183,18 +183,18 @@ function renderApp(): void {
     <h3 style="color:var(--pq-color)">Scenario 1 — ML-DSA Catastrophically Broken</h3>
     <p class="timeline">Timeline: 2028. Lattice cryptanalysis breakthrough. ML-DSA signatures can be forged without the private key.</p>
     <div class="btn-row">
-      <button class="btn btn-pq" id="sim-mldsa-break" disabled>Simulate ML-DSA Break</button>
+      <button class="btn btn-pq" id="sim-mldsa-break" disabled aria-disabled="true">Simulate ML-DSA Break</button>
     </div>
-    <div id="mldsa-break-result" class="hidden" style="margin-top:0.8rem"></div>
+    <div id="mldsa-break-result" class="hidden" aria-live="polite" style="margin-top:0.8rem"></div>
   </div>
 
   <div class="scenario">
     <h3 style="color:var(--ed-color)">Scenario 2 — Quantum Computer Arrives</h3>
     <p class="timeline">Timeline: 2035. CRQC operational. Shor's algorithm breaks Ed25519.</p>
     <div class="btn-row">
-      <button class="btn btn-ed" id="sim-quantum-break" disabled>Simulate Quantum Break</button>
+      <button class="btn btn-ed" id="sim-quantum-break" disabled aria-disabled="true">Simulate Quantum Break</button>
     </div>
-    <div id="quantum-break-result" class="hidden" style="margin-top:0.8rem"></div>
+    <div id="quantum-break-result" class="hidden" aria-live="polite" style="margin-top:0.8rem"></div>
   </div>
 
   <div class="scenario">
@@ -211,13 +211,14 @@ function renderApp(): void {
     <h2>Composite vs Single Algorithm</h2>
   </div>
 
-  <table class="compare-table">
+  <div class="table-wrap">
+  <table class="compare-table" aria-label="Comparison of Ed25519, ML-DSA-65, and Composite signature properties">
     <thead>
       <tr>
-        <th>Property</th>
-        <th class="ed-col">Ed25519</th>
-        <th class="pq-col">ML-DSA-65</th>
-        <th class="comp-col">Composite</th>
+        <th scope="col">Property</th>
+        <th scope="col" class="ed-col">Ed25519</th>
+        <th scope="col" class="pq-col">ML-DSA-65</th>
+        <th scope="col" class="comp-col">Composite</th>
       </tr>
     </thead>
     <tbody>
@@ -230,6 +231,7 @@ function renderApp(): void {
       <tr><td>Standardization</td><td class="ed-col">RFC 8032</td><td class="pq-col">FIPS 204</td><td class="comp-col">IETF LAMPS draft-16</td></tr>
     </tbody>
   </table>
+  </div>
 
   <div style="margin-top:1rem">
     <h3 style="font-size:0.88rem;margin-bottom:0.6rem;color:var(--text-muted)">TLS 1.3 SignatureScheme registry</h3>
@@ -313,6 +315,12 @@ function wireEvents(): void {
     setTimeout(() => {
       currentKeyPair = generateCompositeKeyPair();
       currentPublicKey = compositePublicKeyFrom(currentKeyPair);
+      currentSignature = null;
+      hide('sign-steps');
+      hide('verify-result');
+      el<HTMLButtonElement>('verify-btn').disabled = true;
+      el<HTMLButtonElement>('tamper-mldsa-btn').disabled = true;
+      el<HTMLButtonElement>('tamper-ed-btn').disabled = true;
 
       setHtml('ed-pub', `<span class="key-value">${toHex(currentKeyPair.ed25519.publicKey).slice(0, 16)}…</span>`);
       setHtml('pq-pub', `<span class="key-value">${toHex(currentKeyPair.mldsa.publicKey).slice(0, 16)}…</span>`);
@@ -322,11 +330,17 @@ function wireEvents(): void {
       btn.textContent = 'Regenerate Keypair';
 
       // Enable sign button
-      el<HTMLButtonElement>('sign-btn').disabled = false;
+      const signBtn2 = el<HTMLButtonElement>('sign-btn');
+      signBtn2.disabled = false;
+      signBtn2.removeAttribute('aria-disabled');
 
       // Enable break simulation buttons
-      el<HTMLButtonElement>('sim-mldsa-break').disabled = false;
-      el<HTMLButtonElement>('sim-quantum-break').disabled = false;
+      const mldsaBreakBtn = el<HTMLButtonElement>('sim-mldsa-break');
+      mldsaBreakBtn.disabled = false;
+      mldsaBreakBtn.removeAttribute('aria-disabled');
+      const qBreakBtn = el<HTMLButtonElement>('sim-quantum-break');
+      qBreakBtn.disabled = false;
+      qBreakBtn.removeAttribute('aria-disabled');
 
       // Populate double-break scenario text
       const db = simulateDoubleBreak(currentKeyPair, new Uint8Array(1));
@@ -355,9 +369,15 @@ function wireEvents(): void {
       show('sign-steps');
 
       // Enable remaining buttons
-      el<HTMLButtonElement>('verify-btn').disabled = false;
-      el<HTMLButtonElement>('tamper-mldsa-btn').disabled = false;
-      el<HTMLButtonElement>('tamper-ed-btn').disabled = false;
+      const verifyBtnEl = el<HTMLButtonElement>('verify-btn');
+      verifyBtnEl.disabled = false;
+      verifyBtnEl.removeAttribute('aria-disabled');
+      const tamperMldsaBtnEl = el<HTMLButtonElement>('tamper-mldsa-btn');
+      tamperMldsaBtnEl.disabled = false;
+      tamperMldsaBtnEl.removeAttribute('aria-disabled');
+      const tamperEdBtnEl = el<HTMLButtonElement>('tamper-ed-btn');
+      tamperEdBtnEl.disabled = false;
+      tamperEdBtnEl.removeAttribute('aria-disabled');
 
       btn.disabled = false;
       btn.textContent = 'Sign with Composite';
@@ -368,14 +388,17 @@ function wireEvents(): void {
   el('expand-sig').addEventListener('click', () => {
     if (!currentSignature) return;
     const hexEl = el('sig-hex');
+    const expandBtn = el<HTMLButtonElement>('expand-sig');
     if (hexEl.classList.contains('expanded')) {
       hexEl.textContent = toHex(currentSignature.slice(0, 48)) + '…';
       hexEl.classList.remove('expanded');
-      el('expand-sig').textContent = 'Show full signature';
+      expandBtn.textContent = 'Show full signature';
+      expandBtn.setAttribute('aria-expanded', 'false');
     } else {
       hexEl.textContent = toHex(currentSignature);
       hexEl.classList.add('expanded');
-      el('expand-sig').textContent = 'Collapse';
+      expandBtn.textContent = 'Collapse';
+      expandBtn.setAttribute('aria-expanded', 'true');
     }
   });
 
@@ -505,7 +528,7 @@ function verifyAndDisplay(sig: Uint8Array, label: string): void {
       ${verifyIcon(r.valid)}
       <span>COMPOSITE:</span>
       <span class="${r.valid ? 'status-comp-ok' : 'status-comp-fail'}">
-        ${r.valid ? '✓ VALID' : `✗ INVALID ${!r.mldsaValid && r.ed25519Valid ? '(caught by Ed25519)' : ''}${r.mldsaValid && !r.ed25519Valid ? '(caught by ML-DSA-65)' : ''}${!r.mldsaValid && !r.ed25519Valid ? '(both failed)' : ''}`}
+        ${r.valid ? '✓ VALID' : `✗ INVALID ${!r.mldsaValid && r.ed25519Valid ? '(caught by ML-DSA-65)' : ''}${r.mldsaValid && !r.ed25519Valid ? '(caught by Ed25519)' : ''}${!r.mldsaValid && !r.ed25519Valid ? '(both failed)' : ''}`}
       </span>
     </div>
   `;
