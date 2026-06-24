@@ -7,15 +7,27 @@
   --surface2: #1a1a26;
   --border: #2a2a3a;
   --text: #e8e8f0;
-  --text-muted: #8888a8;
+  --text-muted: #9a9ac0;
   --focus-ring: #ffd700;
   -webkit-text-size-adjust: 100%;
-  --ed-color: #00d4ff;      /* Ed25519 — classical cyan */
-  --pq-color: #9d4edd;      /* ML-DSA-65 — PQ purple */
+
+  /* Accent TEXT colors — tuned for >=4.5:1 (WCAG AA) on the dark surfaces.
+     Overridden in the light theme below; never reuse these as solid fills. */
+  --ed-color: #2bd9ff;      /* Ed25519 — classical cyan */
+  --pq-color: #c79bf0;      /* ML-DSA-65 — PQ purple */
   --composite-ok: #ffd700;  /* Both pass — gold */
-  --warn: #ffaa00;          /* One fails — amber */
-  --danger: #ff3366;        /* Both fail / private key */
-  --success: #00e676;
+  --warn: #ffb733;          /* One fails — amber */
+  --danger: #ff708f;        /* Both fail / private key */
+  --success: #3ff08f;
+
+  /* Solid FILL colors — constant across themes. Used only as button/skip-link
+     backgrounds where a fixed black/white label keeps contrast >=4.5:1. */
+  --ed-fill: #00c2f0;
+  --pq-fill: #7c3aed;
+  --gold-fill: #ffd700;
+  --warn-fill: #ffaa00;
+  --danger-fill: #c01038;
+
   font-family: 'Segoe UI', system-ui, sans-serif;
   font-size: 15px;
   color: var(--text);
@@ -28,7 +40,16 @@
   --surface2: #eeeef6;
   --border: #ccccdd;
   --text: #1a1a2e;
-  --text-muted: #555577;
+  --text-muted: #4a4a6a;
+  --focus-ring: #6d28d9;
+
+  /* Darkened accents — >=4.5:1 on near-white surfaces. */
+  --ed-color: #0b6e8c;
+  --pq-color: #7c3aed;
+  --composite-ok: #7a6000;
+  --warn: #8a5a00;
+  --danger: #c01038;
+  --success: #0a7a32;
 }
 
 /* ── Layout ────────────────────────────────────────────────────────────── */
@@ -37,9 +58,11 @@ body { min-height: 100vh; }
 #app { max-width: 900px; margin: 0 auto; padding: 1.5rem; }
 
 .page-header h1 {
-  font-size: 1.7rem;
+  font-size: clamp(1.3rem, 6vw, 1.9rem);
   font-weight: 700;
   letter-spacing: -0.02em;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
 }
 
 .page-header h1 .ed { color: var(--ed-color); }
@@ -53,67 +76,14 @@ body { min-height: 100vh; }
 }
 
 /* ── Skip link ─────────────────────────────────────────────────────────── */
-.skip-link { position: absolute; top: -100%; left: 1rem; background: var(--pq-color); color: #fff; padding: 0.5rem 1rem; border-radius: 6px; z-index: 200; font-size: 0.85rem; text-decoration: none; }
+.skip-link { position: absolute; top: -100%; left: 1rem; background: var(--pq-fill); color: #fff; padding: 0.5rem 1rem; border-radius: 6px; z-index: 1100; font-size: 0.85rem; text-decoration: none; }
 .skip-link:focus { top: 0.5rem; }
 
-/* ── Topbar (cl-header) ─────────────────────────────────────────────────── */
-.cl-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 0.6rem 1rem;
-  border-bottom: 1px solid var(--border);
-  background: var(--surface);
-  position: sticky;
-  top: 0;
-  z-index: 50;
-  backdrop-filter: blur(6px);
-}
-.cl-header-left { display: flex; align-items: center; gap: 0.6rem; }
-.cl-badge {
-  font-size: 0.75rem;
-  font-weight: 700;
-  letter-spacing: 0.05em;
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  padding: 0.2rem 0.45rem;
-  color: var(--text);
-  background: var(--surface2);
-}
-.cl-header-text { display: flex; flex-direction: column; line-height: 1.2; }
-.cl-title { font-size: 0.7rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-muted); }
-.cl-sub { font-size: 0.65rem; color: var(--text-muted); text-decoration: none; }
-.cl-sub:hover { color: var(--text); }
-.cl-header-nav { display: flex; align-items: center; gap: 0.5rem; }
-.cl-nav-btn {
-  font-size: 0.75rem;
-  font-weight: 600;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  text-decoration: none;
-  color: var(--text);
-  border: 1px solid var(--border);
-  border-radius: 5px;
-  padding: 0.3rem 0.7rem;
-  background: var(--surface2);
-  transition: border-color 0.2s;
-}
-.cl-nav-btn:hover { border-color: var(--pq-color); }
-.cl-theme-toggle {
-  background: var(--surface2);
-  border: 1px solid var(--border);
-  color: var(--text);
-  border-radius: 5px;
-  padding: 0.3rem 0.6rem;
-  cursor: pointer;
-  font-size: 0.9rem;
-  min-height: 36px;
-  min-width: 36px;
-  line-height: 1;
-}
-.cl-theme-toggle:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
+/* The crypto-lab banner (brand, GitHub, theme toggle) is the shared header in
+   index.html. This demo intentionally renders no second header of its own. */
 
 /* ── Page header (demo title) ───────────────────────────────────────────── */
+#main-content:focus { outline: none; } /* skip-link target; focus moved silently */
 .page-header {
   text-align: center;
   padding: 2rem 0 1.5rem;
@@ -208,10 +178,14 @@ body { min-height: 100vh; }
   border-radius: 4px;
   font-weight: 600;
   text-transform: uppercase;
+  /* Neutral surface bg + accent border keeps accent text >=4.5:1 in both
+     themes (a same-hue tinted bg would cap contrast below AA). */
+  background: var(--surface2);
+  border: 1px solid transparent;
 }
-.badge-classical { background: color-mix(in srgb, var(--ed-color) 20%, transparent); color: var(--ed-color); }
-.badge-pq { background: color-mix(in srgb, var(--pq-color) 20%, transparent); color: var(--pq-color); }
-.badge-composite { background: color-mix(in srgb, var(--composite-ok) 20%, transparent); color: var(--composite-ok); }
+.badge-classical { border-color: color-mix(in srgb, var(--ed-color) 45%, var(--border)); color: var(--ed-color); }
+.badge-pq { border-color: color-mix(in srgb, var(--pq-color) 45%, var(--border)); color: var(--pq-color); }
+.badge-composite { border-color: color-mix(in srgb, var(--composite-ok) 45%, var(--border)); color: var(--composite-ok); }
 
 .size-summary {
   background: var(--surface2);
@@ -222,9 +196,9 @@ body { min-height: 100vh; }
   font-size: 0.82rem;
 }
 
-.size-row { display: flex; justify-content: space-between; padding: 0.2rem 0; border-bottom: 1px solid var(--border); }
+.size-row { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 0.25rem 1rem; padding: 0.2rem 0; border-bottom: 1px solid var(--border); }
 .size-row:last-child { border-bottom: none; }
-.size-val { font-weight: 600; color: var(--composite-ok); }
+.size-val { font-weight: 600; color: var(--composite-ok); text-align: right; overflow-wrap: anywhere; }
 
 /* ── Buttons ───────────────────────────────────────────────────────────── */
 .btn {
@@ -242,11 +216,11 @@ body { min-height: 100vh; }
 .btn:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
 .btn:disabled { opacity: 0.4; cursor: default; }
 
-.btn-primary { background: var(--composite-ok); color: #000; }
-.btn-ed { background: var(--ed-color); color: #000; }
-.btn-pq { background: var(--pq-color); color: #fff; }
-.btn-danger { background: var(--danger); color: #fff; }
-.btn-warn { background: var(--warn); color: #000; }
+.btn-primary { background: var(--gold-fill); color: #000; }
+.btn-ed { background: var(--ed-fill); color: #000; }
+.btn-pq { background: var(--pq-fill); color: #fff; }
+.btn-danger { background: var(--danger-fill); color: #fff; }
+.btn-warn { background: var(--warn-fill); color: #000; }
 .btn-neutral { background: var(--surface2); color: var(--text); border: 1px solid var(--border); }
 
 .btn-row { display: flex; flex-wrap: wrap; gap: 0.6rem; margin-top: 1rem; }
@@ -270,6 +244,7 @@ body { min-height: 100vh; }
   outline-offset: 2px;
 }
 .field textarea { resize: vertical; min-height: 70px; font-family: monospace; }
+.field-error { color: var(--danger); font-size: 0.78rem; margin-top: 0.35rem; font-weight: 600; }
 
 /* ── Verification result ───────────────────────────────────────────────── */
 .verify-panel {
@@ -345,6 +320,7 @@ body { min-height: 100vh; }
   -webkit-overflow-scrolling: touch;
   margin-top: 0.8rem;
 }
+.table-wrap:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
 .compare-table {
   width: 100%;
   min-width: 480px;
@@ -357,6 +333,7 @@ body { min-height: 100vh; }
   text-align: left;
 }
 .compare-table th { background: var(--surface2); color: var(--text-muted); font-weight: 600; }
+.compare-table tbody th[scope="row"] { color: var(--text); text-align: left; }
 .compare-table td.ed-col { color: var(--ed-color); }
 .compare-table td.pq-col { color: var(--pq-color); }
 .compare-table td.comp-col { color: var(--composite-ok); }
@@ -464,6 +441,65 @@ pre {
   margin-right: 0.4rem;
 }
 @keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── Methodology disclosure ────────────────────────────────────────────── */
+.method-note {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.6rem 0.9rem;
+  margin-bottom: 1rem;
+  font-size: 0.82rem;
+}
+.method-note summary {
+  cursor: pointer;
+  color: var(--text-muted);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+.method-note summary:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
+.method-note p { color: var(--text-muted); line-height: 1.6; margin-top: 0.6rem; }
+.method-note code, .narrative code {
+  font-family: ui-monospace, monospace;
+  font-size: 0.92em;
+  background: color-mix(in srgb, var(--composite-ok) 12%, transparent);
+  border-radius: 3px;
+  padding: 0 0.25em;
+}
+
+/* ── Mobile / small-screen tuning ──────────────────────────────────────── */
+@media (max-width: 600px) {
+  #app { padding: 1rem; }
+  .exhibit { padding: 1.1rem; border-radius: 10px; }
+  .page-header { padding: 1.4rem 0 1.2rem; }
+  .exhibit-header { gap: 0.5rem; flex-wrap: wrap; }
+  /* Full-width tap targets so buttons don't crowd on narrow screens. */
+  .btn-row .btn { flex: 1 1 auto; }
+  .verify-row { flex-wrap: wrap; }
+}
+
+/* ── Windows High Contrast / forced colors ─────────────────────────────── */
+@media (forced-colors: active) {
+  .btn, .exhibit, .key-card, .scenario, .verify-panel, .method-note,
+  .size-summary, .hex-display, .compare-table th, .compare-table td {
+    border: 1px solid CanvasText;
+  }
+  .btn:focus-visible, .field input:focus-visible,
+  .expand-btn:focus-visible { outline: 2px solid Highlight; }
+  .status-ok, .status-fail, .status-comp-ok, .status-comp-fail { color: CanvasText; }
+  .censor { background: CanvasText; }
+}
+
+/* ── Reduced motion ────────────────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+  .spinner { animation: none; border-top-color: var(--composite-ok); }
+}
 
 .hidden { display: none !important; }
 

@@ -8,96 +8,118 @@ import {
 import { ED25519 } from './primitives';
 
 /**
- * Simulate an attacker who has broken ML-DSA (catastrophic lattice analysis).
- * The attacker can forge an ML-DSA signature but cannot forge Ed25519.
- * The composite rejects because Ed25519 fails.
+ * Break-scenario simulations.
+ *
+ * We obviously cannot actually break Ed25519 or ML-DSA-65 in a browser. So we
+ * MODEL an attacker's forging power honestly: an algorithm the attacker has
+ * "broken" is one for which they can mint a signature that genuinely verifies.
+ * We stand in for that power by signing the forged message with the real
+ * private key — the resulting component signature passes verification exactly
+ * as a real forgery would. The algorithm the attacker has NOT broken gets
+ * random bytes, which fail verification exactly as a forgery attempt would.
+ *
+ * The payoff: every per-component VALID / INVALID line the UI shows is the
+ * literal output of `compositeVerify` on the forged signature — nothing is
+ * narrated or faked. The composite's accept/reject decision is real.
  */
-export function simulateMldsaBreak(
-  keyPair: CompositeKeyPair,
-  message: Uint8Array
-): {
-  legitSignature: Uint8Array;
-  forgedSignature: Uint8Array;
+
+export type CaughtBy = 'ed25519' | 'mldsa' | 'none';
+
+export interface BreakResult {
+  /** Did a legitimate signature over the same message verify? (sanity check) */
   legitValid: boolean;
+  /** Forged ML-DSA-65 component verifies? */
+  forgedMldsaValid: boolean;
+  /** Forged Ed25519 component verifies? */
+  forgedEd25519Valid: boolean;
+  /** Does the forged COMPOSITE verify? (true only if both components do) */
   forgedValid: boolean;
-  ed25519Caught: boolean;
-} {
-  const pubKey = compositePublicKeyFrom(keyPair);
-  const legitSignature = compositeSign(keyPair, message);
-  const legitResult = compositeVerify(pubKey, message, legitSignature);
+  /** Which intact component rejected the forgery (if any). */
+  caughtBy: CaughtBy;
+}
 
-  // Attacker can forge ML-DSA but not Ed25519.
-  // Simulate: replace ML-DSA portion with random bytes (standing in for a forged ML-DSA sig),
-  // and fill Ed25519 portion with random bytes (attacker cannot forge Ed25519).
-  const forgedSignature = new Uint8Array(ML_DSA_65.signatureBytes + ED25519.signatureBytes);
-  crypto.getRandomValues(forgedSignature.subarray(0, ML_DSA_65.signatureBytes));
-  crypto.getRandomValues(forgedSignature.subarray(ML_DSA_65.signatureBytes));
+const FORGED_MESSAGE = 'Transfer $10,000,000 to attacker — authorized';
 
-  const forgedResult = compositeVerify(pubKey, message, forgedSignature);
+/** Replace the ML-DSA portion [0, 3309) of a composite signature with random bytes. */
+function randomizeMldsaPortion(sig: Uint8Array): void {
+  crypto.getRandomValues(sig.subarray(0, ML_DSA_65.signatureBytes));
+}
+
+/** Replace the Ed25519 portion [3309, 3373) of a composite signature with random bytes. */
+function randomizeEd25519Portion(sig: Uint8Array): void {
+  crypto.getRandomValues(sig.subarray(ML_DSA_65.signatureBytes));
+}
+
+function evaluate(
+  keyPair: CompositeKeyPair,
+  message: Uint8Array,
+  forgedSig: Uint8Array
+): BreakResult {
+  const pub = compositePublicKeyFrom(keyPair);
+  const legit = compositeVerify(pub, message, compositeSign(keyPair, message));
+  const r = compositeVerify(pub, message, forgedSig);
+
+  let caughtBy: CaughtBy = 'none';
+  if (!r.valid) {
+    if (!r.ed25519Valid && r.mldsaValid) caughtBy = 'ed25519';
+    else if (r.ed25519Valid && !r.mldsaValid) caughtBy = 'mldsa';
+  }
 
   return {
-    legitSignature,
-    forgedSignature,
-    legitValid: legitResult.valid,
-    forgedValid: forgedResult.valid,
-    ed25519Caught: !forgedResult.ed25519Valid,
+    legitValid: legit.valid,
+    forgedMldsaValid: r.mldsaValid,
+    forgedEd25519Valid: r.ed25519Valid,
+    forgedValid: r.valid,
+    caughtBy,
   };
 }
 
 /**
- * Simulate an attacker who has a quantum computer (breaks Ed25519 via Shor's algorithm).
- * The attacker can forge an Ed25519 signature but cannot forge ML-DSA.
- * The composite rejects because ML-DSA fails.
+ * Scenario 1 — ML-DSA-65 catastrophically broken (lattice cryptanalysis).
+ * The attacker can mint a VALID ML-DSA-65 signature on the forged message but
+ * cannot forge Ed25519. Ed25519 must reject → composite rejected.
  */
-export function simulateQuantumBreak(
-  keyPair: CompositeKeyPair,
-  message: Uint8Array
-): {
-  legitSignature: Uint8Array;
-  forgedSignature: Uint8Array;
-  legitValid: boolean;
-  forgedValid: boolean;
-  mldsaCaught: boolean;
-} {
-  const pubKey = compositePublicKeyFrom(keyPair);
-  const legitSignature = compositeSign(keyPair, message);
-  const legitResult = compositeVerify(pubKey, message, legitSignature);
-
-  // Attacker can forge Ed25519 (via quantum computer) but not ML-DSA.
-  // Simulate: random ML-DSA portion (attacker cannot forge), random Ed25519 portion
-  // (standing in for a "quantum-forged" Ed25519 sig on wrong message).
-  const forgedSignature = new Uint8Array(ML_DSA_65.signatureBytes + ED25519.signatureBytes);
-  crypto.getRandomValues(forgedSignature.subarray(0, ML_DSA_65.signatureBytes));
-  crypto.getRandomValues(forgedSignature.subarray(ML_DSA_65.signatureBytes));
-
-  const forgedResult = compositeVerify(pubKey, message, forgedSignature);
-
-  return {
-    legitSignature,
-    forgedSignature,
-    legitValid: legitResult.valid,
-    forgedValid: forgedResult.valid,
-    mldsaCaught: !forgedResult.mldsaValid,
-  };
+export function simulateMldsaBreak(keyPair: CompositeKeyPair): BreakResult {
+  const forgedMessage = new TextEncoder().encode(FORGED_MESSAGE);
+  // Start from a fully valid forgery, then knock out the component the
+  // attacker did NOT break (Ed25519).
+  const forged = compositeSign(keyPair, forgedMessage);
+  randomizeEd25519Portion(forged);
+  return evaluate(keyPair, forgedMessage, forged);
 }
 
 /**
- * Illustrate the residual risk: if BOTH algorithms are simultaneously broken,
- * the composite provides no protection.
+ * Scenario 2 — quantum computer (Shor) breaks Ed25519.
+ * The attacker can mint a VALID Ed25519 signature on the forged message but
+ * cannot forge ML-DSA-65. ML-DSA-65 must reject → composite rejected.
  */
-export function simulateDoubleBreak(
-  _keyPair: CompositeKeyPair,
-  _message: Uint8Array
-): { composite: string } {
-  return {
-    composite:
-      'If both Ed25519 (discrete-log) and ML-DSA-65 (lattices) are simultaneously ' +
-      'broken, an attacker can forge both component signatures and the composite ' +
-      'verification succeeds. The composite provides DEFENSE IN DEPTH, not ' +
-      'invincibility. The security assumption is that two independent mathematical ' +
-      'families — elliptic-curve discrete log and module lattices — do not fall ' +
-      'at the same moment. Historical cryptanalysis suggests this is very unlikely, ' +
-      'but it is not impossible. Composites protect you during the transition period; ' +
-      'once PQ crypto earns decades of confidence, you can drop the classical component.',
-  };
+export function simulateQuantumBreak(keyPair: CompositeKeyPair): BreakResult {
+  const forgedMessage = new TextEncoder().encode(FORGED_MESSAGE);
+  const forged = compositeSign(keyPair, forgedMessage);
+  randomizeMldsaPortion(forged);
+  return evaluate(keyPair, forgedMessage, forged);
 }
+
+/**
+ * Scenario 3 — BOTH families broken simultaneously (the residual risk).
+ * The attacker can forge both components, so the composite accepts the forgery.
+ * Defense in depth, not invincibility.
+ */
+export function simulateDoubleBreak(keyPair: CompositeKeyPair): BreakResult {
+  const forgedMessage = new TextEncoder().encode(FORGED_MESSAGE);
+  // Both components forged with full forging power → both verify.
+  const forged = compositeSign(keyPair, forgedMessage);
+  return evaluate(keyPair, forgedMessage, forged);
+}
+
+export const DOUBLE_BREAK_NARRATIVE =
+  'If both Ed25519 (elliptic-curve discrete log) and ML-DSA-65 (module lattices) ' +
+  'are broken at the same moment, an attacker forges both component signatures and ' +
+  'the composite verification succeeds. The composite buys DEFENSE IN DEPTH, not ' +
+  'invincibility. Its security assumption is that two independent mathematical ' +
+  'families do not fall simultaneously — historically very unlikely, but not ' +
+  'impossible. Composites protect you through the migration period; once PQ ' +
+  'cryptography earns decades of cryptanalytic confidence, the classical half can ' +
+  'be retired.';
+
+export const FORGED_MESSAGE_TEXT = FORGED_MESSAGE;

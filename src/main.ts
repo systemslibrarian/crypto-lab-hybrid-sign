@@ -14,7 +14,14 @@ import {
   type CompositeKeyPair,
   type CompositePublicKey,
 } from './composite';
-import { simulateMldsaBreak, simulateQuantumBreak, simulateDoubleBreak } from './breaks';
+import {
+  simulateMldsaBreak,
+  simulateQuantumBreak,
+  simulateDoubleBreak,
+  DOUBLE_BREAK_NARRATIVE,
+  FORGED_MESSAGE_TEXT,
+  type BreakResult,
+} from './breaks';
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 function toHex(bytes: Uint8Array): string {
@@ -40,6 +47,30 @@ function setHtml(id: string, html: string): void {
 function show(id: string): void { el(id).classList.remove('hidden'); }
 function hide(id: string): void { el(id).classList.add('hidden'); }
 
+/**
+ * Read the context input as bytes. The composite combiner encodes len(ctx) in a
+ * single byte, so a context over 255 bytes is invalid (multibyte UTF-8 can blow
+ * past the input's 255-char cap). Returns null and shows an inline error in that
+ * case so callers abort cleanly instead of throwing into a dead spinner.
+ */
+function readContext(): Uint8Array | null {
+  const ctxStr = el<HTMLInputElement>('sign-context').value;
+  const ctx = ctxStr ? new TextEncoder().encode(ctxStr) : new Uint8Array(0);
+  if (ctx.length > 255) {
+    setText('ctx-error', `Context is ${ctx.length} bytes; the maximum is 255.`);
+    show('ctx-error');
+    return null;
+  }
+  hide('ctx-error');
+  return ctx;
+}
+
+function readMessage(): Uint8Array {
+  return new TextEncoder().encode(
+    el<HTMLInputElement>('sign-message').value || 'Paul Clark certified 2026'
+  );
+}
+
 function hexDisplay(bytes: Uint8Array, maxBytes = 32): string {
   const full = toHex(bytes);
   const preview = toHex(bytes.slice(0, maxBytes));
@@ -63,21 +94,8 @@ function renderApp(): void {
   const app = document.getElementById('app')!;
   app.innerHTML = `
 <a href="#main-content" class="skip-link">Skip to main content</a>
-<header class="cl-header">
-  <div class="cl-header-left">
-    <div class="cl-badge">CL</div>
-    <div class="cl-header-text">
-      <span class="cl-title">CRYPTO LAB</span>
-      <a class="cl-sub" href="https://systemslibrarian.dev" target="_blank" rel="noopener">systemslibrarian.dev</a>
-    </div>
-  </div>
-  <nav class="cl-header-nav">
-    <a class="cl-nav-btn" href="https://github.com/systemslibrarian/crypto-lab-hybrid-sign" target="_blank" rel="noopener">GitHub</a>
-    <button class="cl-theme-toggle" id="theme-toggle" aria-label="Toggle light/dark theme">&#9728;</button>
-  </nav>
-</header>
 
-<div id="main-content" class="page-header">
+<div id="main-content" class="page-header" tabindex="-1">
   <h1>
     <span class="ed">Ed25519</span>
     <span class="plus"> + </span>
@@ -102,7 +120,7 @@ function renderApp(): void {
       <div class="key-card ed-card">
         <h3>Ed25519 <span class="badge badge-classical">Classical</span></h3>
         <div class="key-row"><span class="key-label">Private</span>
-          <span class="censor" id="ed-priv">████████████████</span></div>
+          <span><span class="censor" id="ed-priv" aria-hidden="true">████████████████</span><span class="sr-only">withheld &mdash; never leaves the browser</span></span></div>
         <div class="key-row"><span class="key-label">Public</span>
           <span class="key-value" id="ed-pub">—</span></div>
         <div class="key-row"><span class="key-label">Size</span>
@@ -115,7 +133,7 @@ function renderApp(): void {
       <div class="key-card pq-card">
         <h3>ML-DSA-65 <span class="badge badge-pq">Post-Quantum</span></h3>
         <div class="key-row"><span class="key-label">Private</span>
-          <span class="censor" id="pq-priv">████████████████</span></div>
+          <span><span class="censor" id="pq-priv" aria-hidden="true">████████████████</span><span class="sr-only">withheld &mdash; never leaves the browser</span></span></div>
         <div class="key-row"><span class="key-label">Public</span>
           <span class="key-value" id="pq-pub">—</span></div>
         <div class="key-row"><span class="key-label">Size</span>
@@ -150,7 +168,8 @@ function renderApp(): void {
   </div>
   <div class="field">
     <label for="sign-context">Context (optional)</label>
-    <input type="text" id="sign-context" placeholder="(leave blank for empty context)" />
+    <input type="text" id="sign-context" maxlength="255" placeholder="(leave blank for empty context)" aria-describedby="ctx-error" />
+    <div id="ctx-error" class="field-error hidden" role="alert"></div>
   </div>
 
   <div class="btn-row">
@@ -163,15 +182,18 @@ function renderApp(): void {
   <div id="sign-steps" class="hidden" style="margin-top:1rem">
     <h4 style="font-size:0.82rem;color:var(--text-muted);margin-bottom:0.5rem">Signing steps:</h4>
     <ul class="steps">
-      <li>Build M' = Prefix || Domain || len(ctx) || ctx || M</li>
+      <li>M' = Prefix &Vert; Label &Vert; len(ctx) &Vert; ctx &Vert; <strong>SHA-512(M)</strong></li>
+      <li>ML-DSA-65.Sign(sk, M', ctx=Label) → <span style="color:var(--pq-color)">${ML_DSA_65.signatureBytes} bytes</span></li>
       <li>Ed25519.Sign(sk, M') → <span style="color:var(--ed-color)">${ED25519.signatureBytes} bytes</span></li>
-      <li>ML-DSA-65.Sign(sk, M', ctx=label) → <span style="color:var(--pq-color)">${ML_DSA_65.signatureBytes} bytes</span></li>
-      <li>Concatenate: ML-DSA || Ed25519 → <strong style="color:var(--composite-ok)">${COMPOSITE_SIG_BYTES} bytes</strong></li>
+      <li>Concatenate: ML-DSA &Vert; Ed25519 → <strong style="color:var(--composite-ok)">${COMPOSITE_SIG_BYTES} bytes</strong></li>
     </ul>
     <div class="field">
       <label>Signature (<span id="sig-len">—</span> bytes)</label>
       <div class="hex-display" id="sig-hex">—</div>
-      <button class="expand-btn" id="expand-sig" aria-expanded="false">Show full signature</button>
+      <div class="btn-row" style="margin-top:0.4rem">
+        <button class="expand-btn" id="expand-sig" aria-expanded="false">Show full signature</button>
+        <button class="expand-btn" id="copy-sig">Copy hex</button>
+      </div>
     </div>
   </div>
 
@@ -187,10 +209,23 @@ function renderApp(): void {
     <h2>The Break Scenarios</h2>
   </div>
 
-  <p class="narrative" style="margin-bottom:1rem">
+  <p class="narrative" style="margin-bottom:0.8rem">
     What happens when an attacker breaks <strong>one</strong> of the two algorithms?
-    Run the simulations to see the composite catch each failure mode.
+    Each simulation forges a signature on the message
+    &ldquo;<em id="forged-msg">—</em>&rdquo; and feeds it to the real verifier.
   </p>
+
+  <details class="method-note">
+    <summary>How these simulations stay honest</summary>
+    <p>
+      We can&rsquo;t actually break Ed25519 or ML-DSA-65 in a browser. We model an
+      attacker&rsquo;s forging power instead: the <strong>broken</strong> component is
+      signed with the real private key, so it genuinely verifies — exactly as a true
+      forgery would. The <strong>intact</strong> component gets random bytes, which fail
+      verification exactly as a forgery attempt would. Every ✓/✗ below is the literal
+      output of <code>compositeVerify</code> on the forged signature. Nothing is faked.
+    </p>
+  </details>
 
   <div class="scenario">
     <h3 style="color:var(--pq-color)">Scenario 1 — ML-DSA Catastrophically Broken</h3>
@@ -211,8 +246,12 @@ function renderApp(): void {
   </div>
 
   <div class="scenario">
-    <h3 style="color:var(--danger)">Scenario 3 — Both Algorithms Broken (Theoretical)</h3>
+    <h3 style="color:var(--danger)">Scenario 3 — Both Algorithms Broken (the residual risk)</h3>
     <p class="timeline">Timeline: Unknown. Catastrophic simultaneous break of both algorithm families.</p>
+    <div class="btn-row">
+      <button class="btn btn-danger" id="sim-double-break" disabled aria-disabled="true">Simulate Double Break</button>
+    </div>
+    <div id="double-break-result" class="hidden" aria-live="polite" style="margin-top:0.8rem"></div>
     <div id="double-break-text" class="narrative" style="margin-top:0.6rem"></div>
   </div>
 </section>
@@ -224,7 +263,7 @@ function renderApp(): void {
     <h2>Composite vs Single Algorithm</h2>
   </div>
 
-  <div class="table-wrap">
+  <div class="table-wrap" role="region" aria-label="Signature comparison table (scrollable)" tabindex="0">
   <table class="compare-table" aria-label="Comparison of Ed25519, ML-DSA-65, and Composite signature properties">
     <thead>
       <tr>
@@ -235,13 +274,13 @@ function renderApp(): void {
       </tr>
     </thead>
     <tbody>
-      <tr><td>Private key</td><td class="ed-col">32 B</td><td class="pq-col">4,032 B</td><td class="comp-col">4,064 B</td></tr>
-      <tr><td>Public key</td><td class="ed-col">32 B</td><td class="pq-col">1,952 B</td><td class="comp-col">1,984 B</td></tr>
-      <tr><td>Signature</td><td class="ed-col">64 B</td><td class="pq-col">3,309 B</td><td class="comp-col">${COMPOSITE_SIG_BYTES} B</td></tr>
-      <tr><td>Classical security</td><td class="ed-col">128 bits</td><td class="pq-col">~192 bits</td><td class="comp-col">~192 bits (min)</td></tr>
-      <tr><td>PQ security</td><td class="ed-col" style="color:var(--danger)">0 (broken by Shor)</td><td class="pq-col">~192 bits</td><td class="comp-col">~192 bits</td></tr>
-      <tr><td>Survives single break</td><td class="ed-col" style="color:var(--danger)">No</td><td class="pq-col" style="color:var(--danger)">No</td><td class="comp-col" style="color:var(--success)"><strong>Yes</strong></td></tr>
-      <tr><td>Standardization</td><td class="ed-col">RFC 8032</td><td class="pq-col">FIPS 204</td><td class="comp-col">IETF LAMPS draft-16</td></tr>
+      <tr><th scope="row">Private key</th><td class="ed-col">32 B</td><td class="pq-col">4,032 B</td><td class="comp-col">4,064 B</td></tr>
+      <tr><th scope="row">Public key</th><td class="ed-col">32 B</td><td class="pq-col">1,952 B</td><td class="comp-col">1,984 B</td></tr>
+      <tr><th scope="row">Signature</th><td class="ed-col">64 B</td><td class="pq-col">3,309 B</td><td class="comp-col">${COMPOSITE_SIG_BYTES} B</td></tr>
+      <tr><th scope="row">Classical security</th><td class="ed-col">128 bits</td><td class="pq-col">~192 bits</td><td class="comp-col">~192 bits (min)</td></tr>
+      <tr><th scope="row">PQ security</th><td class="ed-col" style="color:var(--danger)">0 (broken by Shor)</td><td class="pq-col">~192 bits</td><td class="comp-col">~192 bits</td></tr>
+      <tr><th scope="row">Survives single break</th><td class="ed-col" style="color:var(--danger)">No</td><td class="pq-col" style="color:var(--danger)">No</td><td class="comp-col" style="color:var(--success)"><strong>Yes</strong></td></tr>
+      <tr><th scope="row">Standardization</th><td class="ed-col">RFC 8032</td><td class="pq-col">FIPS 204</td><td class="comp-col">IETF LAMPS draft-16</td></tr>
     </tbody>
   </table>
   </div>
@@ -310,13 +349,7 @@ X.509:  id-MLDSA65-Ed25519-SHA512         (draft-ietf-lamps-pq-composite-sigs-16
 
 // ── Wire up events ─────────────────────────────────────────────────────────
 function wireEvents(): void {
-  // Theme toggle
-  el('theme-toggle').addEventListener('click', () => {
-    const current = document.documentElement.getAttribute('data-theme');
-    const next = current === 'dark' ? 'light' : 'dark';
-    document.documentElement.setAttribute('data-theme', next);
-    localStorage.setItem('theme', next);
-  });
+  // Theme is owned by the shared crypto-lab header (in index.html).
 
   // Exhibit 1 — generate keypair
   el('gen-keypair').addEventListener('click', () => {
@@ -354,10 +387,13 @@ function wireEvents(): void {
       const qBreakBtn = el<HTMLButtonElement>('sim-quantum-break');
       qBreakBtn.disabled = false;
       qBreakBtn.removeAttribute('aria-disabled');
+      const dBreakBtn = el<HTMLButtonElement>('sim-double-break');
+      dBreakBtn.disabled = false;
+      dBreakBtn.removeAttribute('aria-disabled');
 
-      // Populate double-break scenario text
-      const db = simulateDoubleBreak(currentKeyPair, new Uint8Array(1));
-      el('double-break-text').textContent = db.composite;
+      // Populate double-break scenario text + forged-message label
+      setText('forged-msg', FORGED_MESSAGE_TEXT);
+      el('double-break-text').textContent = DOUBLE_BREAK_NARRATIVE;
     }, 10);
   });
 
@@ -369,11 +405,13 @@ function wireEvents(): void {
     btn.innerHTML = '<span class="spinner"></span>Signing…';
 
     setTimeout(() => {
-      const msg = new TextEncoder().encode(
-        (el<HTMLInputElement>('sign-message')).value || 'Paul Clark certified 2026'
-      );
-      const ctxStr = (el<HTMLInputElement>('sign-context')).value;
-      const ctx = ctxStr ? new TextEncoder().encode(ctxStr) : new Uint8Array(0);
+      const ctx = readContext();
+      if (ctx === null) {
+        btn.disabled = false;
+        btn.textContent = 'Sign with Composite';
+        return;
+      }
+      const msg = readMessage();
 
       currentSignature = compositeSign(currentKeyPair!, msg, ctx);
 
@@ -415,6 +453,19 @@ function wireEvents(): void {
     }
   });
 
+  // Copy full signature hex to clipboard
+  el('copy-sig').addEventListener('click', async () => {
+    if (!currentSignature) return;
+    const btn = el<HTMLButtonElement>('copy-sig');
+    try {
+      await navigator.clipboard.writeText(toHex(currentSignature));
+      btn.textContent = 'Copied ✓';
+    } catch {
+      btn.textContent = 'Copy failed';
+    }
+    setTimeout(() => { btn.textContent = 'Copy hex'; }, 1500);
+  });
+
   // Exhibit 2 — verify
   el('verify-btn').addEventListener('click', () => {
     if (!currentSignature || !currentPublicKey) return;
@@ -431,97 +482,95 @@ function wireEvents(): void {
     verifyAndDisplay(tamperEd25519Portion(currentSignature), 'Tampered Ed25519 portion');
   });
 
-  // Exhibit 3 — break simulations
-  el('sim-mldsa-break').addEventListener('click', () => {
+  // Exhibit 3 — break simulations (all three share one honest renderer)
+  wireBreakButton('sim-mldsa-break', 'Simulate ML-DSA Break', 'mldsa-break-result', 'mldsa');
+  wireBreakButton('sim-quantum-break', 'Simulate Quantum Break', 'quantum-break-result', 'quantum');
+  wireBreakButton('sim-double-break', 'Simulate Double Break', 'double-break-result', 'double');
+}
+
+type BreakKind = 'mldsa' | 'quantum' | 'double';
+
+function statusCell(valid: boolean): string {
+  return valid
+    ? '<span class="status-ok">✓ VALID</span>'
+    : '<span class="status-fail">✗ INVALID</span>';
+}
+
+function renderBreakResult(kind: BreakKind, r: BreakResult): string {
+  // Outcome line.
+  let verdict: string;
+  if (kind === 'double') {
+    verdict = r.forgedValid
+      ? '<strong style="color:var(--danger)">Composite FORGED.</strong> Both families fell at once, so both components verify and the composite accepts the forgery. This is the residual risk — defense in depth, not invincibility.'
+      : '<strong style="color:var(--danger)">Unexpected: composite rejected a double-forged signature.</strong>';
+  } else {
+    const guardName = r.caughtBy === 'ed25519' ? 'Ed25519' : 'ML-DSA-65';
+    const guardKind = r.caughtBy === 'ed25519' ? 'classical' : 'post-quantum';
+    verdict = !r.forgedValid && r.caughtBy !== 'none'
+      ? `<strong style="color:var(--success)">${guardName} caught the forgery.</strong> One algorithm was broken, but the intact ${guardKind} component held — so the composite rejects.`
+      : '<strong style="color:var(--danger)">Unexpected: composite accepted the forged signature.</strong>';
+  }
+
+  // Per-component description of what the attacker did.
+  const mldsaForged = kind !== 'quantum'; // forged (valid) in mldsa-break and double-break
+  const edForged = kind !== 'mldsa';      // forged (valid) in quantum-break and double-break
+  const mldsaNote = mldsaForged ? 'forged by attacker' : 'attacker cannot forge';
+  const edNote = edForged
+    ? (kind === 'quantum' ? 'quantum-forged via Shor' : 'forged by attacker')
+    : 'attacker cannot forge';
+
+  const compositeCell = r.forgedValid
+    ? '<span class="status-comp-fail">✓ ACCEPTED — forgery succeeds</span>'
+    : '<span class="status-comp-ok">✗ REJECTED — forgery stopped</span>';
+
+  return `
+    <div class="verify-panel">
+      <div class="verify-row">
+        <span style="color:var(--pq-color)">ML-DSA-65 (${mldsaNote}):</span>
+        <span>${statusCell(r.forgedMldsaValid)}</span>
+      </div>
+      <div class="verify-row">
+        <span style="color:var(--ed-color)">Ed25519 (${edNote}):</span>
+        <span>${statusCell(r.forgedEd25519Valid)}</span>
+      </div>
+      <div class="verify-row">
+        <span>Forged composite:</span>
+        <span>${compositeCell}</span>
+      </div>
+      <p class="narrative" style="margin-top:0.6rem">${verdict}</p>
+    </div>`;
+}
+
+function wireBreakButton(
+  btnId: string,
+  label: string,
+  resultId: string,
+  kind: BreakKind
+): void {
+  el(btnId).addEventListener('click', () => {
     if (!currentKeyPair) return;
-    const btn = el<HTMLButtonElement>('sim-mldsa-break');
+    const btn = el<HTMLButtonElement>(btnId);
     btn.disabled = true;
     btn.innerHTML = '<span class="spinner"></span>Simulating…';
 
     setTimeout(() => {
-      const msg = new TextEncoder().encode('Forged authorization for attacker');
-      const r = simulateMldsaBreak(currentKeyPair!, msg);
-
-      const html = `
-        <div class="verify-panel">
-          <div class="verify-row">
-            <span>Legitimate signature:</span>
-            <span>${r.legitValid ? '<span class="status-ok">✓ VALID</span>' : '<span class="status-fail">✗ INVALID</span>'}</span>
-          </div>
-          <div class="verify-row">
-            <span style="color:var(--pq-color)">ML-DSA-65 forged by attacker:</span>
-            <span style="color:var(--warn)">✓ (forged successfully)</span>
-          </div>
-          <div class="verify-row">
-            <span style="color:var(--ed-color)">Ed25519 — attacker cannot forge:</span>
-            <span>${r.ed25519Caught ? '<span class="status-fail">✗ FAIL — Ed25519 catches it</span>' : '<span class="status-ok">✓</span>'}</span>
-          </div>
-          <div class="verify-row">
-            <span>Forged composite:</span>
-            <span>${r.forgedValid ? '<span class="status-comp-ok">✓ PASSED (broken!)</span>' : '<span class="status-comp-fail">✗ REJECTED</span>'}</span>
-          </div>
-          <p class="narrative" style="margin-top:0.6rem">
-            ${r.ed25519Caught
-              ? '<strong style="color:var(--success)">Ed25519 caught the forgery.</strong> Even though ML-DSA was broken, the classical component protected the composite.'
-              : '<strong style="color:var(--danger)">Unexpected: composite accepted forged signature.</strong>'}
-          </p>
-        </div>`;
-      setHtml('mldsa-break-result', html);
-      show('mldsa-break-result');
+      const r =
+        kind === 'mldsa' ? simulateMldsaBreak(currentKeyPair!) :
+        kind === 'quantum' ? simulateQuantumBreak(currentKeyPair!) :
+        simulateDoubleBreak(currentKeyPair!);
+      setHtml(resultId, renderBreakResult(kind, r));
+      show(resultId);
       btn.disabled = false;
-      btn.textContent = 'Simulate ML-DSA Break';
-    }, 10);
-  });
-
-  el('sim-quantum-break').addEventListener('click', () => {
-    if (!currentKeyPair) return;
-    const btn = el<HTMLButtonElement>('sim-quantum-break');
-    btn.disabled = true;
-    btn.innerHTML = '<span class="spinner"></span>Simulating…';
-
-    setTimeout(() => {
-      const msg = new TextEncoder().encode('Forged authorization for attacker');
-      const r = simulateQuantumBreak(currentKeyPair!, msg);
-
-      const html = `
-        <div class="verify-panel">
-          <div class="verify-row">
-            <span>Legitimate signature:</span>
-            <span>${r.legitValid ? '<span class="status-ok">✓ VALID</span>' : '<span class="status-fail">✗ INVALID</span>'}</span>
-          </div>
-          <div class="verify-row">
-            <span style="color:var(--ed-color)">Ed25519 quantum-forged via Shor:</span>
-            <span style="color:var(--warn)">✓ (quantum-forged successfully)</span>
-          </div>
-          <div class="verify-row">
-            <span style="color:var(--pq-color)">ML-DSA-65 — post-quantum secure:</span>
-            <span>${r.mldsaCaught ? '<span class="status-fail">✗ FAIL — ML-DSA catches it</span>' : '<span class="status-ok">✓</span>'}</span>
-          </div>
-          <div class="verify-row">
-            <span>Forged composite:</span>
-            <span>${r.forgedValid ? '<span class="status-comp-ok">✓ PASSED (broken!)</span>' : '<span class="status-comp-fail">✗ REJECTED</span>'}</span>
-          </div>
-          <p class="narrative" style="margin-top:0.6rem">
-            ${r.mldsaCaught
-              ? '<strong style="color:var(--success)">ML-DSA-65 caught the forgery.</strong> The post-quantum component protected the composite even against a quantum adversary.'
-              : '<strong style="color:var(--danger)">Unexpected: composite accepted forged signature.</strong>'}
-          </p>
-        </div>`;
-      setHtml('quantum-break-result', html);
-      show('quantum-break-result');
-      btn.disabled = false;
-      btn.textContent = 'Simulate Quantum Break';
+      btn.textContent = label;
     }, 10);
   });
 }
 
 function verifyAndDisplay(sig: Uint8Array, label: string): void {
   if (!currentPublicKey) return;
-  const msg = new TextEncoder().encode(
-    (el<HTMLInputElement>('sign-message')).value || 'Paul Clark certified 2026'
-  );
-  const ctxStr = (el<HTMLInputElement>('sign-context')).value;
-  const ctx = ctxStr ? new TextEncoder().encode(ctxStr) : new Uint8Array(0);
+  const ctx = readContext();
+  if (ctx === null) return;
+  const msg = readMessage();
 
   const r = compositeVerify(currentPublicKey, msg, sig, ctx);
 
@@ -553,11 +602,34 @@ function verifyAndDisplay(sig: Uint8Array, label: string): void {
 renderApp();
 wireEvents();
 
-// Verify prefix hex in console for spec compliance
-const prefixHex = toHex(COMPOSITE_PREFIX);
-console.info(
-  '[composite-sign] COMPOSITE_PREFIX hex:',
-  prefixHex,
-  '\nExpected: 436f6d706f73697465416c676f726974686d5369676e61747572657332303235',
-  '\nMatch:', prefixHex.toLowerCase() === '436f6d706f73697465416c676f726974686d5369676e61747572657332303235'
-);
+// Boot-time self-test: prove spec-prefix bytes and a full sign/verify/tamper
+// round-trip in the console, so a curious visitor can confirm it's real.
+// Deferred off the boot path — the ML-DSA keygen + signs are heavy enough to
+// stall first paint on a phone, and nothing in the UI depends on it.
+function runSelfTest(): void {
+  const EXPECTED_PREFIX =
+    '436f6d706f73697465416c676f726974686d5369676e61747572657332303235';
+  const prefixHex = toHex(COMPOSITE_PREFIX);
+  const prefixOk = prefixHex.toLowerCase() === EXPECTED_PREFIX;
+
+  const kp = generateCompositeKeyPair();
+  const pub = compositePublicKeyFrom(kp);
+  const msg = new TextEncoder().encode('self-test');
+  const sig = compositeSign(kp, msg);
+  const clean = compositeVerify(pub, msg, sig).valid;
+  const edTamper = !compositeVerify(pub, msg, tamperEd25519Portion(sig)).valid;
+  const mldsaTamper = !compositeVerify(pub, msg, tamperMldsaPortion(sig)).valid;
+  const ok = prefixOk && clean && edTamper && mldsaTamper;
+
+  console.info(
+    `%c[composite-sign] self-test ${ok ? 'PASSED ✓' : 'FAILED ✗'}`,
+    `color:${ok ? '#00e676' : '#ff3366'};font-weight:700`,
+    { prefixOk, cleanVerifies: clean, edTamperRejected: edTamper, mldsaTamperRejected: mldsaTamper }
+  );
+}
+
+const ric = (window as unknown as {
+  requestIdleCallback?: (cb: () => void) => void;
+}).requestIdleCallback;
+if (ric) ric(runSelfTest);
+else setTimeout(runSelfTest, 200);

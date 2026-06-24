@@ -5,6 +5,7 @@ import {
   ed25519Verify,
   mldsaSign,
   mldsaVerify,
+  sha512Hash,
   ED25519,
   ML_DSA_65,
   type Ed25519KeyPair,
@@ -63,32 +64,45 @@ export function compositePublicKeyFrom(kp: CompositeKeyPair): CompositePublicKey
 }
 
 // ── Message construction ───────────────────────────────────────────────────
+/** Max context length: len(ctx) is encoded in a single byte per draft-16. */
+export const MAX_CTX_BYTES = 255;
+
 /**
- * Build M' = Prefix || Domain || len(ctx) || ctx || M
- * per draft-ietf-lamps-pq-composite-sigs-16 composite combiner.
+ * Build the composite message representative
+ *   M' = Prefix || Label || len(ctx) || ctx || PH(M)
+ * per draft-ietf-lamps-pq-composite-sigs-16 (Section 2.2 / 3.2).
+ *
+ * PH(M) is the pre-hash — SHA-512 for the MLDSA65-Ed25519-SHA512 algorithm.
+ * Both component algorithms sign this same representative.
  */
 export function buildCompositeMessage(
   message: Uint8Array,
   ctx: Uint8Array = new Uint8Array(0)
 ): Uint8Array {
-  // Domain = COMPOSITE_LABEL_BYTES
-  const domain = COMPOSITE_LABEL_BYTES;
-  const ctxLen = new Uint8Array([ctx.length & 0xff]);
+  if (ctx.length > MAX_CTX_BYTES) {
+    throw new RangeError(
+      `context too long: ${ctx.length} bytes (max ${MAX_CTX_BYTES})`
+    );
+  }
+
+  const label = COMPOSITE_LABEL_BYTES;
+  const phm = sha512Hash(message); // PH(M) = SHA-512(M)
+  const ctxLen = new Uint8Array([ctx.length]);
 
   const total =
     COMPOSITE_PREFIX.length +
-    domain.length +
+    label.length +
     1 + // len(ctx)
     ctx.length +
-    message.length;
+    phm.length;
 
   const buf = new Uint8Array(total);
   let offset = 0;
   buf.set(COMPOSITE_PREFIX, offset); offset += COMPOSITE_PREFIX.length;
-  buf.set(domain, offset);           offset += domain.length;
+  buf.set(label, offset);            offset += label.length;
   buf.set(ctxLen, offset);           offset += 1;
   buf.set(ctx, offset);              offset += ctx.length;
-  buf.set(message, offset);
+  buf.set(phm, offset);
 
   return buf;
 }

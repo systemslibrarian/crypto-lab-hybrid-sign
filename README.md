@@ -25,8 +25,8 @@ https://systemslibrarian.github.io/crypto-lab-hybrid-sign/
 ## The Five Exhibits
 
 1. **Composite Keypair** — Live generation showing Ed25519 and ML-DSA-65 component keys side by side with sizes and security properties
-2. **Sign and Verify** — Step-by-step composite signing (builds M′ = Prefix ‖ Domain ‖ ctx ‖ M, signs with both algorithms) and per-component verification with tamper buttons
-3. **Break Scenarios** — Simulate ML-DSA lattice break (Ed25519 catches it) and quantum computer break of Ed25519 (ML-DSA catches it), plus the residual double-break risk
+2. **Sign and Verify** — Step-by-step composite signing (builds M′ = Prefix ‖ Label ‖ len(ctx) ‖ ctx ‖ SHA-512(M), signs with both algorithms) and per-component verification with tamper and copy-hex buttons
+3. **Break Scenarios** — Simulate ML-DSA lattice break (Ed25519 catches it), quantum break of Ed25519 (ML-DSA catches it), and the residual double break (composite forged). Each simulation feeds a real forged signature to the real verifier — the broken component is signed with the live key so it genuinely verifies, the intact component gets random bytes that genuinely fail, and every ✓/✗ is the literal output of `compositeVerify`. Nothing is narrated or faked.
 4. **Composite vs Single Algorithm** — Side-by-side size and security comparison; TLS/SSH/X.509 deployment context
 5. **Why This Matters** — The 25-year threat model, the crypto-lab story arc (KEMs + signatures), real-world deployment status
 
@@ -44,7 +44,19 @@ Composite PQ/T signatures are being standardized by the IETF LAMPS working group
 
 ## Stack
 
-Vite + TypeScript strict + vanilla CSS. GitHub Pages. No backends. No `Math.random()` — all randomness via `crypto.getRandomValues` (inside `@noble` primitives).
+Vite + TypeScript strict + vanilla CSS. GitHub Pages. No backends. No `Math.random()` — all randomness via `crypto.getRandomValues` (inside `@noble` primitives). SHA-512 prehash via `@noble/hashes`.
+
+## Accessibility & mobile
+
+Targets WCAG 2.1 AA. Every text/background pair clears 4.5:1 in **both** light and dark themes (accent colours are darkened per-theme; solid button fills keep a fixed black/white label at ≥4.5:1) and focus indicators clear 3:1. Also: a single banner landmark (the shared crypto-lab header), skip link with a programmatic focus target, `aria-live` result regions, labelled form fields, `scope` row/column headers with a keyboard-scrollable table region, a screen-reader label on the redacted private key, 44px touch targets, 16px inputs (no iOS zoom), fluid type, and `prefers-reduced-motion` / `forced-colors` support. Layout reflows cleanly down to 320px.
+
+## Tests
+
+```
+npm test
+```
+
+14 Vitest unit tests covering: spec prefix/label/size constants, the `Prefix ‖ Label ‖ len(ctx) ‖ ctx ‖ SHA-512(M)` message representative (including the 255-byte context guard), clean round-trip, context binding, message binding, wrong-length rejection, per-component tamper detection, and all three break scenarios (both single breaks reject, double break is forged). A boot-time self-test also logs a sign/verify/tamper round-trip to the browser console.
 
 ## The crypto-lab Suite
 

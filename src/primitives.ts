@@ -1,5 +1,11 @@
 import { ed25519 } from '@noble/curves/ed25519.js';
 import { ml_dsa65 } from '@noble/post-quantum/ml-dsa.js';
+import { sha512 } from '@noble/hashes/sha2.js';
+
+/** SHA-512 pre-hash — PH(M) in the composite message representative. */
+export function sha512Hash(msg: Uint8Array): Uint8Array {
+  return sha512(msg);
+}
 
 // ── Size constants (verified from library at install time) ─────────────────
 export const ED25519 = {
