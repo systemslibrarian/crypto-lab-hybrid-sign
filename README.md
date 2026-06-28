@@ -1,8 +1,8 @@
 # crypto-lab-hybrid-sign
 
-Browser-based PQ/T Composite Signature demo implementing the Ed25519 + ML-DSA-65 hybrid per IETF LAMPS `draft-ietf-lamps-pq-composite-sigs-16` (April 2026). Combines a classical Ed25519 signature with a post-quantum ML-DSA-65 signature such that **both must verify** for the composite to be valid. Uses `@noble/curves` for Ed25519 and `@noble/post-quantum` for ML-DSA-65. Demonstrates the two break scenarios the scheme defends against: catastrophic ML-DSA cryptanalysis (classical) and quantum computer compromise of Ed25519. Shows the residual risk of simultaneous double breaks honestly — composites provide defense in depth, not invincibility.
-
 ## What It Is
+
+Browser-based PQ/T Composite Signature demo implementing the Ed25519 + ML-DSA-65 hybrid per IETF LAMPS `draft-ietf-lamps-pq-composite-sigs-16` (April 2026). Combines a classical Ed25519 signature with a post-quantum ML-DSA-65 signature such that **both must verify** for the composite to be valid. Uses `@noble/curves` for Ed25519 and `@noble/post-quantum` for ML-DSA-65. Demonstrates the two break scenarios the scheme defends against: catastrophic ML-DSA cryptanalysis (classical) and quantum computer compromise of Ed25519. Shows the residual risk of simultaneous double breaks honestly — composites provide defense in depth, not invincibility.
 
 A composite signature combines an Ed25519 signature (classical, 128-bit security) with an ML-DSA-65 signature (post-quantum, ~192-bit security). Both must verify for the composite to be accepted. Forging requires breaking **both** independent algorithm families — elliptic-curve discrete log and module lattice cryptography — simultaneously.
 
@@ -17,18 +17,13 @@ TLS 1.3 codepoint: `0x090B (mldsa65_ed25519)`
 - Evaluating composite signatures for X.509 code-signing, CA hierarchies, SSH identity keys that must last 10+ years
 - Comparing composite signatures to hybrid KEMs (different primitives, same philosophy)
 - **Not for:** short-lived session tokens, JWT tokens (use ML-DSA alone once your stack supports it), situations where signature size is constrained (composites are 3,373 bytes vs 64 bytes classical-only)
+- Do NOT deploy this code in production — it is a teaching demo of the composite construction; use a vetted library tracking the LAMPS composite-signatures draft.
 
 ## Live Demo
 
-https://systemslibrarian.github.io/crypto-lab-hybrid-sign/
+**[systemslibrarian.github.io/crypto-lab-hybrid-sign](https://systemslibrarian.github.io/crypto-lab-hybrid-sign/)**
 
-## The Five Exhibits
-
-1. **Composite Keypair** — Live generation showing Ed25519 and ML-DSA-65 component keys side by side with sizes and security properties
-2. **Sign and Verify** — Step-by-step composite signing (builds M′ = Prefix ‖ Label ‖ len(ctx) ‖ ctx ‖ SHA-512(M), signs with both algorithms) and per-component verification with tamper and copy-hex buttons
-3. **Break Scenarios** — Simulate ML-DSA lattice break (Ed25519 catches it), quantum break of Ed25519 (ML-DSA catches it), and the residual double break (composite forged). Each simulation feeds a real forged signature to the real verifier — the broken component is signed with the live key so it genuinely verifies, the intact component gets random bytes that genuinely fail, and every ✓/✗ is the literal output of `compositeVerify`. Nothing is narrated or faked.
-4. **Composite vs Single Algorithm** — Side-by-side size and security comparison; TLS/SSH/X.509 deployment context
-5. **Why This Matters** — The 25-year threat model, the crypto-lab story arc (KEMs + signatures), real-world deployment status
+Generate a composite keypair with its Ed25519 and ML-DSA-65 component keys side by side, sign and verify a message (building the `M′ = Prefix ‖ Label ‖ len(ctx) ‖ ctx ‖ SHA-512(M)` representative and signing with both algorithms), then run the three break scenarios live. Each scenario feeds a real forged signature to the real verifier — the broken component is signed with the live key so it genuinely verifies, the intact component gets random bytes that genuinely fail, and every ✓/✗ is the literal output of `compositeVerify`. A side-by-side panel compares composite vs single-algorithm size and security, with TLS/SSH/X.509 deployment context.
 
 ## What Can Go Wrong
 
@@ -41,6 +36,31 @@ https://systemslibrarian.github.io/crypto-lab-hybrid-sign/
 ## Real-World Usage
 
 Composite PQ/T signatures are being standardized by the IETF LAMPS working group in `draft-ietf-lamps-pq-composite-sigs-16` (April 2026) for X.509 certificates and CMS signed data. TLS 1.3 SignatureScheme codepoints have been assigned: `mldsa44_ed25519 (0x090A)` and `mldsa65_ed25519 (0x090B)`. SSH has a separate draft `draft-josefsson-ssh-ed25519mldsa65-01` (October 2025). Major PKI vendors (Entrust, DigiCert) have prototyped composite CA issuance. Microsoft announced composite signature support for Windows code signing in 2026. The scheme is designed for the migration period (~2025–2035) while PQ crypto earns decades of cryptanalytic confidence.
+
+## How to Run Locally
+
+```bash
+git clone https://github.com/systemslibrarian/crypto-lab-hybrid-sign
+cd crypto-lab-hybrid-sign
+npm install
+npm run dev
+```
+
+## Related Demos
+
+- [crypto-lab-dilithium-seal](https://systemslibrarian.github.io/crypto-lab-dilithium-seal/) — ML-DSA (FIPS 204), the post-quantum half of the composite.
+- [crypto-lab-ed25519-forge](https://systemslibrarian.github.io/crypto-lab-ed25519-forge/) — Ed25519, the classical half of the composite.
+- [crypto-lab-hybrid-guide](https://systemslibrarian.github.io/crypto-lab-hybrid-guide/) — the same defense-in-depth idea applied to KEMs.
+- [crypto-lab-hybrid-wire](https://systemslibrarian.github.io/crypto-lab-hybrid-wire/) — a hybrid X25519 + ML-KEM-768 key exchange, the KEM counterpart.
+- [crypto-lab-pki-chain](https://systemslibrarian.github.io/crypto-lab-pki-chain/) — X.509 certificate chains, where composite signatures are headed.
+
+## The Five Exhibits
+
+1. **Composite Keypair** — Live generation showing Ed25519 and ML-DSA-65 component keys side by side with sizes and security properties
+2. **Sign and Verify** — Step-by-step composite signing (builds M′ = Prefix ‖ Label ‖ len(ctx) ‖ ctx ‖ SHA-512(M), signs with both algorithms) and per-component verification with tamper and copy-hex buttons
+3. **Break Scenarios** — Simulate ML-DSA lattice break (Ed25519 catches it), quantum break of Ed25519 (ML-DSA catches it), and the residual double break (composite forged). Each simulation feeds a real forged signature to the real verifier — the broken component is signed with the live key so it genuinely verifies, the intact component gets random bytes that genuinely fail, and every ✓/✗ is the literal output of `compositeVerify`. Nothing is narrated or faked.
+4. **Composite vs Single Algorithm** — Side-by-side size and security comparison; TLS/SSH/X.509 deployment context
+5. **Why This Matters** — The 25-year threat model, the crypto-lab story arc (KEMs + signatures), real-world deployment status
 
 ## Stack
 
@@ -67,4 +87,6 @@ npm test
 
 ---
 
-> "Whether therefore ye eat, or drink, or whatsoever ye do, do all to the glory of God." — 1 Corinthians 10:31
+*One of 60+ browser demos in the [Crypto Lab](https://crypto-lab.systemslibrarian.dev/) suite.*
+
+*"So whether you eat or drink or whatever you do, do it all for the glory of God." — 1 Corinthians 10:31*
