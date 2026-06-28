@@ -343,6 +343,14 @@ X.509:  id-MLDSA65-Ed25519-SHA512         (draft-ietf-lamps-pq-composite-sigs-16
     <span class="chip">IETF LAMPS draft-16</span>
     <span class="chip">TLS 0x090B</span>
   </p>
+  <p style="margin-top:0.4rem">
+    Related demos:
+    <a href="https://systemslibrarian.github.io/crypto-lab-dilithium-seal/" target="_blank" rel="noreferrer">crypto-lab-dilithium-seal</a>
+    <a href="https://systemslibrarian.github.io/crypto-lab-ed25519-forge/" target="_blank" rel="noreferrer">crypto-lab-ed25519-forge</a>
+    <a href="https://systemslibrarian.github.io/crypto-lab-hybrid-guide/" target="_blank" rel="noreferrer">crypto-lab-hybrid-guide</a>
+    <a href="https://systemslibrarian.github.io/crypto-lab-hybrid-wire/" target="_blank" rel="noreferrer">crypto-lab-hybrid-wire</a>
+    <a href="https://systemslibrarian.github.io/crypto-lab-pki-chain/" target="_blank" rel="noreferrer">crypto-lab-pki-chain</a>
+  </p>
 </footer>
 `;
 }
