@@ -31,10 +31,12 @@
   font-family: 'Segoe UI', system-ui, sans-serif;
   font-size: 15px;
   color: var(--text);
-  background: var(--bg);
+  background-color: var(--bg);
+  color-scheme: dark;
 }
 
 [data-theme="light"] {
+  color-scheme: light;
   --bg: #f4f4f8;
   --surface: #ffffff;
   --surface2: #eeeef6;
@@ -76,7 +78,7 @@ body { min-height: 100vh; }
 }
 
 /* ── Skip link ─────────────────────────────────────────────────────────── */
-.skip-link { position: absolute; top: -100%; left: 1rem; background: var(--pq-fill); color: #fff; padding: 0.5rem 1rem; border-radius: 6px; z-index: 1100; font-size: 0.85rem; text-decoration: none; }
+.skip-link { position: absolute; top: -100%; left: 1rem; background-color: var(--pq-fill); color: #fff; padding: 0.5rem 1rem; border-radius: 6px; z-index: 1100; font-size: 0.85rem; text-decoration: none; }
 .skip-link:focus { top: 0.5rem; }
 
 /* The crypto-lab banner (brand, GitHub, theme toggle) is the shared header in
@@ -93,7 +95,7 @@ body { min-height: 100vh; }
 
 /* ── Exhibit card ──────────────────────────────────────────────────────── */
 .exhibit {
-  background: var(--surface);
+  background-color: var(--surface);
   border: 1px solid var(--border);
   border-radius: 12px;
   padding: 1.5rem;
@@ -133,7 +135,7 @@ body { min-height: 100vh; }
 @media (max-width: 600px) { .keypair-grid { grid-template-columns: 1fr; } }
 
 .key-card {
-  background: var(--surface2);
+  background-color: var(--surface2);
   border: 1px solid var(--border);
   border-radius: 8px;
   padding: 1rem;
@@ -164,7 +166,7 @@ body { min-height: 100vh; }
 
 .censor {
   display: inline-block;
-  background: var(--danger);
+  background-color: var(--danger);
   color: transparent;
   border-radius: 3px;
   padding: 0 0.5em;
@@ -180,7 +182,7 @@ body { min-height: 100vh; }
   text-transform: uppercase;
   /* Neutral surface bg + accent border keeps accent text >=4.5:1 in both
      themes (a same-hue tinted bg would cap contrast below AA). */
-  background: var(--surface2);
+  background-color: var(--surface2);
   border: 1px solid transparent;
 }
 .badge-classical { border-color: color-mix(in srgb, var(--ed-color) 45%, var(--border)); color: var(--ed-color); }
@@ -188,7 +190,7 @@ body { min-height: 100vh; }
 .badge-composite { border-color: color-mix(in srgb, var(--composite-ok) 45%, var(--border)); color: var(--composite-ok); }
 
 .size-summary {
-  background: var(--surface2);
+  background-color: var(--surface2);
   border: 1px solid var(--border);
   border-radius: 8px;
   padding: 1rem;
@@ -216,12 +218,12 @@ body { min-height: 100vh; }
 .btn:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
 .btn:disabled { opacity: 0.4; cursor: default; }
 
-.btn-primary { background: var(--gold-fill); color: #000; }
-.btn-ed { background: var(--ed-fill); color: #000; }
-.btn-pq { background: var(--pq-fill); color: #fff; }
-.btn-danger { background: var(--danger-fill); color: #fff; }
-.btn-warn { background: var(--warn-fill); color: #000; }
-.btn-neutral { background: var(--surface2); color: var(--text); border: 1px solid var(--border); }
+.btn-primary { background-color: var(--gold-fill); color: #000; }
+.btn-ed { background-color: var(--ed-fill); color: #000; }
+.btn-pq { background-color: var(--pq-fill); color: #fff; }
+.btn-danger { background-color: var(--danger-fill); color: #fff; }
+.btn-warn { background-color: var(--warn-fill); color: #000; }
+.btn-neutral { background-color: var(--surface2); color: var(--text); border: 1px solid var(--border); }
 
 .btn-row { display: flex; flex-wrap: wrap; gap: 0.6rem; margin-top: 1rem; }
 
@@ -230,7 +232,7 @@ body { min-height: 100vh; }
 .field label { display: block; font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.3rem; }
 .field input, .field textarea {
   width: 100%;
-  background: var(--surface2);
+  background-color: var(--surface2);
   border: 1px solid var(--border);
   border-radius: 6px;
   color: var(--text);
@@ -248,7 +250,7 @@ body { min-height: 100vh; }
 
 /* ── Verification result ───────────────────────────────────────────────── */
 .verify-panel {
-  background: var(--surface2);
+  background-color: var(--surface2);
   border: 1px solid var(--border);
   border-radius: 8px;
   padding: 1rem;
@@ -292,7 +294,7 @@ body { min-height: 100vh; }
 
 /* ── Scenario cards ────────────────────────────────────────────────────── */
 .scenario {
-  background: var(--surface2);
+  background-color: var(--surface2);
   border: 1px solid var(--border);
   border-radius: 8px;
   padding: 1rem;
@@ -332,16 +334,16 @@ body { min-height: 100vh; }
   border: 1px solid var(--border);
   text-align: left;
 }
-.compare-table th { background: var(--surface2); color: var(--text-muted); font-weight: 600; }
+.compare-table th { background-color: var(--surface2); color: var(--text-muted); font-weight: 600; }
 .compare-table tbody th[scope="row"] { color: var(--text); text-align: left; }
 .compare-table td.ed-col { color: var(--ed-color); }
 .compare-table td.pq-col { color: var(--pq-color); }
 .compare-table td.comp-col { color: var(--composite-ok); }
-.compare-table tr:hover td { background: var(--surface2); }
+.compare-table tr:hover td { background-color: var(--surface2); }
 
 /* ── Code block ────────────────────────────────────────────────────────── */
 pre {
-  background: var(--surface2);
+  background-color: var(--surface2);
   border: 1px solid var(--border);
   border-radius: 6px;
   padding: 0.8rem 1rem;
@@ -360,7 +362,7 @@ pre {
   color: var(--text-muted);
   max-height: 80px;
   overflow-y: auto;
-  background: var(--surface2);
+  background-color: var(--surface2);
   border: 1px solid var(--border);
   border-radius: 6px;
   padding: 0.5rem;
@@ -385,7 +387,7 @@ pre {
 /* ── Info chips ────────────────────────────────────────────────────────── */
 .chip {
   display: inline-block;
-  background: var(--surface2);
+  background-color: var(--surface2);
   border: 1px solid var(--border);
   border-radius: 4px;
   font-size: 0.75rem;
@@ -411,7 +413,7 @@ pre {
 @media (max-width: 600px) { .arc-grid { grid-template-columns: 1fr; } }
 
 .arc-card {
-  background: var(--surface2);
+  background-color: var(--surface2);
   border: 1px solid var(--border);
   border-radius: 8px;
   padding: 0.8rem;
@@ -444,7 +446,7 @@ pre {
 
 /* ── Methodology disclosure ────────────────────────────────────────────── */
 .method-note {
-  background: var(--surface2);
+  background-color: var(--surface2);
   border: 1px solid var(--border);
   border-radius: 8px;
   padding: 0.6rem 0.9rem;
@@ -462,7 +464,7 @@ pre {
 .method-note code, .narrative code {
   font-family: ui-monospace, monospace;
   font-size: 0.92em;
-  background: color-mix(in srgb, var(--composite-ok) 12%, transparent);
+  background-color: color-mix(in srgb, var(--composite-ok) 12%, transparent);
   border-radius: 3px;
   padding: 0 0.25em;
 }
@@ -487,7 +489,7 @@ pre {
   .btn:focus-visible, .field input:focus-visible,
   .expand-btn:focus-visible { outline: 2px solid Highlight; }
   .status-ok, .status-fail, .status-comp-ok, .status-comp-fail { color: CanvasText; }
-  .censor { background: CanvasText; }
+  .censor { background-color: CanvasText; }
 }
 
 /* ── Reduced motion ────────────────────────────────────────────────────── */
@@ -512,3 +514,5 @@ footer {
   border-top: 1px solid var(--border);
   margin-top: 2rem;
 }
+/* Themed link color — UA default link blue fails contrast on the dark bg. */
+footer a { color: var(--ed-color); }
