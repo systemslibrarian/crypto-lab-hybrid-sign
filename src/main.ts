@@ -95,14 +95,17 @@ function renderApp(): void {
   app.innerHTML = `
 <a href="#main-content" class="skip-link">Skip to main content</a>
 
-<div id="main-content" class="page-header" tabindex="-1">
-  <h1>
-    <span class="ed">Ed25519</span>
-    <span class="plus"> + </span>
-    <span class="pq">ML-DSA-65</span>
-  </h1>
-  <p>PQ/T Composite Signatures &bull; IETF LAMPS draft-ietf-lamps-pq-composite-sigs-16 &bull; TLS codepoint 0x090B</p>
-</div>
+<header id="main-content" class="cl-hero" tabindex="-1">
+  <div class="cl-hero-main">
+    <h1 class="cl-hero-title"><span class="ed">Ed25519</span><span class="plus"> + </span><span class="pq">ML-DSA-65</span></h1>
+    <p class="cl-hero-sub">PQ/T Composite · IETF LAMPS draft-16 · TLS 0x090B</p>
+    <p class="cl-hero-desc">Generate a hybrid keypair, sign a message with both algorithms at once, then tamper with or break either half to watch the composite verifier accept only when Ed25519 <em>and</em> ML-DSA-65 both check out.</p>
+  </div>
+  <aside class="cl-hero-why" aria-label="Why it matters">
+    <span class="cl-hero-why-label">WHY IT MATTERS</span>
+    <p class="cl-hero-why-text">Signatures made today may need to verify for decades, well past the arrival of quantum computers. Binding a classical and a post-quantum algorithm together keeps a document authentic even if one entire family is later broken.</p>
+  </aside>
+</header>
 
 <!-- ── Exhibit 1: Keypair ── -->
 <section class="exhibit" id="exhibit1">
