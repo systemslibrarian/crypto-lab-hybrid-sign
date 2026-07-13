@@ -78,6 +78,74 @@ function hexDisplay(bytes: Uint8Array, maxBytes = 32): string {
   return `<span class="hex-preview">${preview}${ellipsis}</span>`;
 }
 
+/**
+ * Light the two-lock AND-gate diagram to reflect a real verification outcome.
+ * `null` = not yet run (idle). Every call here is driven by the literal booleans
+ * that came out of the real verifier — the picture never disagrees with the math.
+ */
+function setMechanism(
+  edOk: boolean | null,
+  pqOk: boolean | null,
+  composite: boolean | null
+): void {
+  const litFor = (ok: boolean | null): string =>
+    ok === null ? 'idle' : ok ? 'ok' : 'fail';
+  const stateText = (ok: boolean | null): string =>
+    ok === null ? 'awaiting verify' : ok ? 'verified ✓' : 'failed ✗';
+
+  const edLock = document.getElementById('mech-lock-ed');
+  const pqLock = document.getElementById('mech-lock-pq');
+  const out = document.getElementById('mech-out');
+  const flow = document.getElementById('mech-flow');
+  if (!edLock || !pqLock || !out || !flow) return;
+
+  edLock.setAttribute('data-lit', litFor(edOk));
+  pqLock.setAttribute('data-lit', litFor(pqOk));
+  setText('mech-state-ed', stateText(edOk));
+  setText('mech-state-pq', stateText(pqOk));
+
+  const lockIcon = (ok: boolean | null): string =>
+    ok === null ? '🔒' : ok ? '🔒' : '🔓';
+  const edIcon = edLock.querySelector('.mech-lock-icon');
+  const pqIcon = pqLock.querySelector('.mech-lock-icon');
+  if (edIcon) edIcon.textContent = lockIcon(edOk);
+  if (pqIcon) pqIcon.textContent = lockIcon(pqOk);
+
+  out.setAttribute('data-lit', litFor(composite));
+  const outLabel =
+    composite === null ? 'ACCEPT / REJECT'
+    : composite ? 'ACCEPT — both locks held'
+    : 'REJECT — a lock failed';
+  setText('mech-out-label', outLabel);
+  flow.setAttribute('data-state', composite === null ? 'idle' : 'run');
+}
+
+// Bytes of each half shown in the structure preview (kept short so both halves
+// fit without a giant wall of hex; the full blob lives in the expandable below).
+const SIG_SEG_PREVIEW = 24;
+
+/**
+ * Render the two labelled halves of the composite blob. When `baseline` is
+ * supplied, any preview byte that differs from it is wrapped in a flip marker,
+ * so a tamper/break visibly changes exactly the right region.
+ */
+function renderSigStructure(sig: Uint8Array, baseline?: Uint8Array): void {
+  const pqLen = ML_DSA_65.signatureBytes;
+  const segHtml = (bytes: Uint8Array, base: Uint8Array | undefined, absStart: number): string => {
+    const n = Math.min(SIG_SEG_PREVIEW, bytes.length);
+    let out = '';
+    for (let i = 0; i < n; i++) {
+      const hex = bytes[i].toString(16).padStart(2, '0');
+      const changed = base && base[absStart + i] !== undefined && base[absStart + i] !== bytes[i];
+      out += changed ? `<mark class="sig-flip">${hex}</mark>` : hex;
+    }
+    if (bytes.length > n) out += `<span class="sig-seg-ell"> …+${bytes.length - n} B</span>`;
+    return out;
+  };
+  el('sig-hex-pq').innerHTML = segHtml(sig.subarray(0, pqLen), baseline, 0);
+  el('sig-hex-ed').innerHTML = segHtml(sig.subarray(pqLen), baseline, pqLen);
+}
+
 function verifyIcon(ok: boolean): string {
   return ok
     ? '<span class="lock-icon status-ok" aria-hidden="true">🔒</span>'
@@ -106,6 +174,58 @@ function renderApp(): void {
     <p class="cl-hero-why-text">Signatures made today may need to verify for decades, well past the arrival of quantum computers. Binding a classical and a post-quantum algorithm together keeps a document authentic even if one entire family is later broken.</p>
   </aside>
 </header>
+
+<!-- ── Plain-language hook (teaching on-ramp above the standards jargon) ── -->
+<section class="primer" aria-label="What a composite signature is">
+  <p class="primer-hook">
+    A <strong>composite signature</strong> is two signatures stapled together — one
+    made with <span class="ed">today&rsquo;s crypto</span>, one
+    <span class="pq">quantum-proof</span> — and a message is trusted only if
+    <strong>BOTH</strong> check out. Forging it means breaking two unrelated kinds of
+    math at once.
+  </p>
+  <p class="primer-caption">
+    Formally: PQ/T composite per IETF LAMPS <span class="nowrap">draft-ietf-lamps-pq-composite-sigs-16</span>,
+    TLS codepoint <code>0x090B</code> (mldsa65_ed25519). Those names are unpacked as you go.
+  </p>
+
+  <!-- The mechanism, drawn: two parallel locks feeding one AND gate. -->
+  <figure class="mechanism" aria-labelledby="mech-cap">
+    <figcaption id="mech-cap" class="mechanism-cap">How &ldquo;both must verify&rdquo; works — the two-lock AND gate</figcaption>
+    <div class="mech-flow" id="mech-flow" data-state="idle">
+      <div class="mech-msg" aria-hidden="true">
+        <span class="mech-msg-label">Message&nbsp;M</span>
+      </div>
+      <div class="mech-arrows" aria-hidden="true"><span></span><span></span></div>
+      <div class="mech-locks">
+        <div class="mech-lock ed-lock" id="mech-lock-ed" data-lit="idle">
+          <span class="mech-lock-icon" aria-hidden="true">🔒</span>
+          <span class="mech-lock-name">Ed25519</span>
+          <span class="mech-lock-kind">classical lock</span>
+          <span class="mech-lock-state" id="mech-state-ed">awaiting verify</span>
+        </div>
+        <div class="mech-lock pq-lock" id="mech-lock-pq" data-lit="idle">
+          <span class="mech-lock-icon" aria-hidden="true">🔒</span>
+          <span class="mech-lock-name">ML-DSA-65</span>
+          <span class="mech-lock-kind">quantum-proof lock</span>
+          <span class="mech-lock-state" id="mech-state-pq">awaiting verify</span>
+        </div>
+      </div>
+      <div class="mech-and" id="mech-and" aria-hidden="true">
+        <span class="mech-and-symbol">AND</span>
+        <span class="mech-and-note">both required</span>
+      </div>
+      <div class="mech-out" id="mech-out" data-lit="idle" role="status" aria-live="polite">
+        <span class="mech-out-label" id="mech-out-label">ACCEPT / REJECT</span>
+      </div>
+    </div>
+    <p class="mechanism-legend">
+      Run <strong>Verify</strong> or any <strong>Break</strong> scenario below and the two
+      locks light up live: <span class="lit-ok">green</span> = that half verified,
+      <span class="lit-fail">red</span> = it failed. The AND gate accepts only when both are green.
+    </p>
+  </figure>
+</section>
 
 <!-- ── Exhibit 1: Keypair ── -->
 <section class="exhibit" id="exhibit1">
@@ -185,14 +305,41 @@ function renderApp(): void {
   <div id="sign-steps" class="hidden" style="margin-top:1rem">
     <h4 style="font-size:0.82rem;color:var(--text-muted);margin-bottom:0.5rem">Signing steps:</h4>
     <ul class="steps">
-      <li>M' = Prefix &Vert; Label &Vert; len(ctx) &Vert; ctx &Vert; <strong>SHA-512(M)</strong></li>
-      <li>ML-DSA-65.Sign(sk, M', ctx=Label) → <span style="color:var(--pq-color)">${ML_DSA_65.signatureBytes} bytes</span></li>
-      <li>Ed25519.Sign(sk, M') → <span style="color:var(--ed-color)">${ED25519.signatureBytes} bytes</span></li>
+      <li>
+        Build the message representative both algorithms will sign:<br>
+        <span class="mprime">M&prime; =
+          <abbr class="gloss gloss-prefix" title="Prefix: a fixed domain-separator string (CompositeAlgorithmSignatures2025) so a composite signature can never be mistaken for a plain Ed25519 or ML-DSA one — prevents cross-protocol attacks.">Prefix</abbr> &Vert;
+          <abbr class="gloss gloss-label" title="Label: names this exact algorithm combo (COMPSIG-MLDSA65-ED25519-SHA512) so a signature for one pairing is not accepted by another.">Label</abbr> &Vert;
+          <abbr class="gloss gloss-ctx" title="len(ctx) ‖ ctx: a caller-supplied context string (and its length) that binds the signature to a use, e.g. an app or document ID.">len(ctx) &Vert; ctx</abbr> &Vert;
+          <abbr class="gloss gloss-ph" title="SHA-512(M): the pre-hash. Both algorithms sign this fixed 64-byte digest instead of the raw message, so message length never matters and both sign exactly the same bytes.">SHA-512(M)</abbr></span>
+        <span class="gloss-hint">(hover / tap each term)</span>
+      </li>
+      <li>ML-DSA-65.Sign(sk, M&prime;, ctx=Label) → <span style="color:var(--pq-color)">${ML_DSA_65.signatureBytes} bytes</span></li>
+      <li>Ed25519.Sign(sk, M&prime;) → <span style="color:var(--ed-color)">${ED25519.signatureBytes} bytes</span></li>
       <li>Concatenate: ML-DSA &Vert; Ed25519 → <strong style="color:var(--composite-ok)">${COMPOSITE_SIG_BYTES} bytes</strong></li>
     </ul>
+
     <div class="field">
-      <label>Signature (<span id="sig-len">—</span> bytes)</label>
-      <div class="hex-display" id="sig-hex">—</div>
+      <label id="sig-struct-label">Composite signature — one blob, two concatenated halves</label>
+      <div class="sig-struct" role="group" aria-labelledby="sig-struct-label">
+        <div class="sig-seg sig-seg-pq" id="sig-seg-pq">
+          <span class="sig-seg-name">ML-DSA-65 · ${ML_DSA_65.signatureBytes} B</span>
+          <code class="sig-seg-hex" id="sig-hex-pq">—</code>
+        </div>
+        <div class="sig-seg sig-seg-ed" id="sig-seg-ed">
+          <span class="sig-seg-name">Ed25519 · ${ED25519.signatureBytes} B</span>
+          <code class="sig-seg-hex" id="sig-hex-ed">—</code>
+        </div>
+      </div>
+      <p class="sig-struct-note" id="sig-struct-note">
+        Bytes 0–${ML_DSA_65.signatureBytes - 1} are the ML-DSA half; bytes ${ML_DSA_65.signatureBytes}–${COMPOSITE_SIG_BYTES - 1} are the Ed25519 half.
+        Tamper or break a half below and watch its bytes flip <span class="sig-flip-swatch" aria-hidden="true"></span> in place.
+      </p>
+    </div>
+
+    <div class="field">
+      <label>Full signature (<span id="sig-len">—</span> bytes)</label>
+      <div class="hex-display" id="sig-hex" tabindex="0" role="region" aria-label="Composite signature hex">—</div>
       <div class="btn-row" style="margin-top:0.4rem">
         <button class="expand-btn" id="expand-sig" aria-expanded="false">Show full signature</button>
         <button class="expand-btn" id="copy-sig">Copy hex</button>
@@ -229,6 +376,36 @@ function renderApp(): void {
       output of <code>compositeVerify</code> on the forged signature. Nothing is faked.
     </p>
   </details>
+
+  <div class="why-shor" aria-label="Why Shor's algorithm breaks one algorithm but not the other">
+    <p class="why-shor-lead">
+      <strong>Why does a quantum computer break Ed25519 but not ML-DSA-65?</strong>
+      Because they rest on different math. Ed25519&rsquo;s security comes from the
+      <span class="ed">elliptic-curve discrete-log problem</span>, which
+      <a href="https://en.wikipedia.org/wiki/Shor%27s_algorithm" target="_blank" rel="noreferrer">Shor&rsquo;s algorithm</a>
+      solves efficiently on a large quantum computer — so a CRQC (a
+      <em>cryptographically-relevant quantum computer</em>) forges it. ML-DSA-65 rests on
+      <span class="pq">module-lattice problems</span>, for which <em>no</em> efficient
+      quantum attack is known. That asymmetry is the entire reason for pairing these two:
+      the classical half fails to quantum, the PQ half is expected to survive it.
+    </p>
+    <details class="why-shor-more">
+      <summary>A bit more depth</summary>
+      <p>
+        Shor turns period-finding into a fast quantum subroutine, which cracks both integer
+        factoring (RSA) and discrete logs (Diffie-Hellman, ECDH, Ed25519). Lattice problems
+        such as Module-LWE and Module-SIS, which ML-DSA-65 relies on, have no known reduction
+        to period-finding, so Shor does not touch them; the best known quantum speedups are
+        modest (Grover-style) and are already priced in to the ~192-bit parameter set. This is
+        an <em>honest caveat, not a proof</em>: &ldquo;no known attack&rdquo; is not
+        &ldquo;no possible attack,&rdquo; which is precisely why the composite keeps a second,
+        independent lock rather than switching to ML-DSA alone. See the two sibling demos —
+        <a href="https://systemslibrarian.github.io/crypto-lab-ed25519-forge/" target="_blank" rel="noreferrer">Ed25519 (classical half)</a>
+        and
+        <a href="https://systemslibrarian.github.io/crypto-lab-dilithium-seal/" target="_blank" rel="noreferrer">ML-DSA-65 (PQ half)</a>.
+      </p>
+    </details>
+  </div>
 
   <div class="scenario">
     <h3 style="color:var(--pq-color)">Scenario 1 — ML-DSA Catastrophically Broken</h3>
@@ -375,6 +552,7 @@ function wireEvents(): void {
       currentSignature = null;
       hide('sign-steps');
       hide('verify-result');
+      setMechanism(null, null, null); // new keys — reset the AND-gate diagram to idle
       el<HTMLButtonElement>('verify-btn').disabled = true;
       el<HTMLButtonElement>('tamper-mldsa-btn').disabled = true;
       el<HTMLButtonElement>('tamper-ed-btn').disabled = true;
@@ -428,6 +606,8 @@ function wireEvents(): void {
 
       setText('sig-len', String(currentSignature.length));
       el('sig-hex').textContent = toHex(currentSignature.slice(0, 48)) + '…';
+      renderSigStructure(currentSignature);
+      setMechanism(null, null, null); // fresh signature — locks await a verify
       show('sign-steps');
 
       // Enable remaining buttons
@@ -480,17 +660,22 @@ function wireEvents(): void {
   // Exhibit 2 — verify
   el('verify-btn').addEventListener('click', () => {
     if (!currentSignature || !currentPublicKey) return;
+    renderSigStructure(currentSignature); // clean — no bytes highlighted
     verifyAndDisplay(currentSignature, 'Clean signature');
   });
 
   el('tamper-mldsa-btn').addEventListener('click', () => {
     if (!currentSignature) return;
-    verifyAndDisplay(tamperMldsaPortion(currentSignature), 'Tampered ML-DSA portion');
+    const tampered = tamperMldsaPortion(currentSignature);
+    renderSigStructure(tampered, currentSignature); // light the flipped ML-DSA bytes
+    verifyAndDisplay(tampered, 'Tampered ML-DSA portion');
   });
 
   el('tamper-ed-btn').addEventListener('click', () => {
     if (!currentSignature) return;
-    verifyAndDisplay(tamperEd25519Portion(currentSignature), 'Tampered Ed25519 portion');
+    const tampered = tamperEd25519Portion(currentSignature);
+    renderSigStructure(tampered, currentSignature); // light the flipped Ed25519 bytes
+    verifyAndDisplay(tampered, 'Tampered Ed25519 portion');
   });
 
   // Exhibit 3 — break simulations (all three share one honest renderer)
@@ -570,6 +755,9 @@ function wireBreakButton(
         kind === 'quantum' ? simulateQuantumBreak(currentKeyPair!) :
         simulateDoubleBreak(currentKeyPair!);
       setHtml(resultId, renderBreakResult(kind, r));
+      // Light the shared AND-gate diagram with this forgery's real verifier output,
+      // so the learner sees which lock held (or, in the double break, that both fell).
+      setMechanism(r.forgedEd25519Valid, r.forgedMldsaValid, r.forgedValid);
       show(resultId);
       btn.disabled = false;
       btn.textContent = label;
@@ -584,6 +772,7 @@ function verifyAndDisplay(sig: Uint8Array, label: string): void {
   const msg = readMessage();
 
   const r = compositeVerify(currentPublicKey, msg, sig, ctx);
+  setMechanism(r.ed25519Valid, r.mldsaValid, r.valid);
 
   const html = `
     <div style="font-size:0.8rem;color:var(--text-muted);margin-bottom:0.5rem">${label}</div>

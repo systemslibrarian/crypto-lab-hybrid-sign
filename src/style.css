@@ -77,6 +77,171 @@ body { min-height: 100vh; }
 @media (max-width:640px){.cl-hero{flex-direction:column;}.cl-hero-why{flex-basis:auto;width:100%;}}
 /* END cl-hero standard */
 
+/* ── Plain-language primer + mechanism diagram ─────────────────────────── */
+.primer {
+  background-color: var(--surface);
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--composite-ok);
+  border-radius: 12px;
+  padding: 1.25rem 1.5rem;
+  margin-bottom: 1.5rem;
+}
+.primer-hook { font-size: 1.05rem; line-height: 1.6; color: var(--text); }
+.primer-hook .ed { color: var(--ed-color); font-weight: 600; }
+.primer-hook .pq { color: var(--pq-color); font-weight: 600; }
+.primer-caption { margin-top: 0.7rem; font-size: 0.78rem; line-height: 1.5; color: var(--text-muted); }
+.primer-caption code {
+  font-family: ui-monospace, monospace;
+  background-color: color-mix(in srgb, var(--composite-ok) 12%, transparent);
+  border-radius: 3px; padding: 0 0.25em;
+}
+.nowrap { white-space: nowrap; }
+
+/* Two-lock AND-gate figure */
+.mechanism { margin-top: 1.15rem; border-top: 1px solid var(--border); padding-top: 1rem; }
+.mechanism-cap { font-size: 0.82rem; font-weight: 600; color: var(--text-muted); margin-bottom: 0.9rem; }
+
+.mech-flow {
+  display: grid;
+  grid-template-columns: auto auto 1fr auto auto;
+  align-items: center;
+  gap: 0.5rem;
+}
+@media (max-width: 640px) {
+  .mech-flow { grid-template-columns: 1fr; gap: 0.6rem; }
+  .mech-arrows { display: none !important; }
+}
+
+.mech-msg {
+  background-color: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.7rem 0.6rem;
+  text-align: center;
+  font-size: 0.78rem;
+  color: var(--text);
+  font-weight: 600;
+}
+.mech-arrows { display: flex; flex-direction: column; gap: 1.6rem; color: var(--text-muted); }
+.mech-arrows span::before { content: '→'; font-size: 1.1rem; }
+
+.mech-locks { display: grid; gap: 0.55rem; }
+.mech-lock {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  grid-template-areas: 'icon name' 'icon kind' 'icon state';
+  column-gap: 0.55rem;
+  align-items: center;
+  border: 2px solid var(--border);
+  border-radius: 8px;
+  padding: 0.55rem 0.7rem;
+  background-color: var(--surface2);
+  transition: border-color 0.2s, background-color 0.2s;
+}
+.mech-lock-icon { grid-area: icon; font-size: 1.5rem; }
+.mech-lock-name { grid-area: name; font-weight: 700; font-size: 0.9rem; }
+.mech-lock-kind { grid-area: kind; font-size: 0.72rem; color: var(--text-muted); }
+.mech-lock-state { grid-area: state; font-size: 0.74rem; font-weight: 600; color: var(--text-muted); }
+.mech-lock.ed-lock .mech-lock-name { color: var(--ed-color); }
+.mech-lock.pq-lock .mech-lock-name { color: var(--pq-color); }
+
+/* Lit states — border + background tint + explicit state text (never colour alone) */
+.mech-lock[data-lit="ok"]   { border-color: var(--success); background-color: color-mix(in srgb, var(--success) 12%, var(--surface2)); }
+.mech-lock[data-lit="ok"]   .mech-lock-state { color: var(--success); }
+.mech-lock[data-lit="fail"] { border-color: var(--danger);  background-color: color-mix(in srgb, var(--danger) 12%, var(--surface2)); }
+.mech-lock[data-lit="fail"] .mech-lock-state { color: var(--danger); }
+
+.mech-and {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 0.15rem;
+  border: 2px dashed var(--border);
+  border-radius: 50%;
+  width: 64px; height: 64px;
+  color: var(--text);
+  background-color: var(--surface2);
+}
+.mech-and-symbol { font-weight: 800; font-size: 0.85rem; letter-spacing: 0.05em; }
+.mech-and-note { font-size: 0.6rem; color: var(--text-muted); text-align: center; line-height: 1.1; }
+
+.mech-out {
+  border: 2px solid var(--border);
+  border-radius: 8px;
+  padding: 0.7rem 0.6rem;
+  text-align: center;
+  font-weight: 700;
+  font-size: 0.82rem;
+  color: var(--text);
+  background-color: var(--surface2);
+  transition: border-color 0.2s, background-color 0.2s, color 0.2s;
+}
+.mech-out[data-lit="ok"]   { border-color: var(--success); background-color: color-mix(in srgb, var(--success) 15%, var(--surface2)); color: var(--success); }
+.mech-out[data-lit="fail"] { border-color: var(--danger);  background-color: color-mix(in srgb, var(--danger) 15%, var(--surface2));  color: var(--danger); }
+
+.mechanism-legend { margin-top: 0.9rem; font-size: 0.78rem; line-height: 1.5; color: var(--text-muted); }
+.mechanism-legend .lit-ok   { color: var(--success); font-weight: 700; }
+.mechanism-legend .lit-fail { color: var(--danger);  font-weight: 700; }
+
+@media (max-width: 640px) {
+  .mech-and { width: 100%; height: auto; border-radius: 8px; flex-direction: row; gap: 0.5rem; padding: 0.5rem; }
+}
+
+/* ── M′ term glosses ───────────────────────────────────────────────────── */
+.mprime { display: inline-block; margin-top: 0.25rem; color: var(--text); }
+.gloss {
+  text-decoration: underline dotted;
+  text-underline-offset: 3px;
+  cursor: help;
+  color: var(--text);
+}
+.gloss-prefix { color: var(--warn); }
+.gloss-label  { color: var(--pq-color); }
+.gloss-ctx    { color: var(--ed-color); }
+.gloss-ph     { color: var(--composite-ok); }
+.gloss-hint { display: inline-block; margin-left: 0.4rem; font-size: 0.72rem; color: var(--text-muted); font-style: italic; }
+
+/* ── Signature internal structure ──────────────────────────────────────── */
+.sig-struct { display: grid; grid-template-columns: 3fr 1fr; gap: 0.5rem; margin-top: 0.3rem; }
+@media (max-width: 520px) { .sig-struct { grid-template-columns: 1fr; } }
+.sig-seg { border: 1px solid var(--border); border-radius: 6px; padding: 0.5rem 0.6rem; background-color: var(--surface2); overflow: hidden; }
+.sig-seg-pq { border-color: color-mix(in srgb, var(--pq-color) 45%, var(--border)); }
+.sig-seg-ed { border-color: color-mix(in srgb, var(--ed-color) 45%, var(--border)); }
+.sig-seg-name { display: block; font-size: 0.72rem; font-weight: 700; letter-spacing: 0.03em; margin-bottom: 0.35rem; }
+.sig-seg-pq .sig-seg-name { color: var(--pq-color); }
+.sig-seg-ed .sig-seg-name { color: var(--ed-color); }
+.sig-seg-hex { display: block; font-family: ui-monospace, monospace; font-size: 0.72rem; line-height: 1.5; color: var(--text-muted); word-break: break-all; }
+.sig-seg-ell { color: var(--text-muted); font-style: italic; }
+.sig-flip {
+  background-color: var(--warn-fill);
+  color: #000;
+  border-radius: 2px;
+  padding: 0 1px;
+  font-weight: 700;
+}
+.sig-struct-note { margin-top: 0.5rem; font-size: 0.76rem; line-height: 1.5; color: var(--text-muted); }
+.sig-flip-swatch {
+  display: inline-block; width: 0.8em; height: 0.8em; vertical-align: -1px;
+  background-color: var(--warn-fill); border-radius: 2px;
+}
+
+/* ── Why-Shor aside ────────────────────────────────────────────────────── */
+.why-shor {
+  background-color: var(--surface2);
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--pq-color);
+  border-radius: 8px;
+  padding: 0.9rem 1.1rem;
+  margin-bottom: 1.1rem;
+}
+.why-shor-lead { font-size: 0.85rem; line-height: 1.6; color: var(--text-muted); }
+.why-shor-lead strong { color: var(--text); }
+.why-shor-lead .ed { color: var(--ed-color); font-weight: 600; }
+.why-shor-lead .pq { color: var(--pq-color); font-weight: 600; }
+.why-shor-lead a, .why-shor-more a { color: var(--ed-color); }
+.why-shor-more { margin-top: 0.6rem; font-size: 0.83rem; }
+.why-shor-more summary { cursor: pointer; color: var(--text-muted); font-weight: 600; }
+.why-shor-more summary:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
+.why-shor-more p { margin-top: 0.5rem; color: var(--text-muted); line-height: 1.6; }
+
 /* ── Skip link ─────────────────────────────────────────────────────────── */
 .skip-link { position: absolute; top: -100%; left: 1rem; background-color: var(--pq-fill); color: #fff; padding: 0.5rem 1rem; border-radius: 6px; z-index: 1100; font-size: 0.85rem; text-decoration: none; }
 .skip-link:focus { top: 0.5rem; }
@@ -476,13 +641,19 @@ pre {
 /* ── Windows High Contrast / forced colors ─────────────────────────────── */
 @media (forced-colors: active) {
   .btn, .exhibit, .key-card, .scenario, .verify-panel, .method-note,
-  .size-summary, .hex-display, .compare-table th, .compare-table td {
+  .size-summary, .hex-display, .compare-table th, .compare-table td,
+  .primer, .mech-msg, .mech-lock, .mech-and, .mech-out, .sig-seg, .why-shor {
     border: 1px solid CanvasText;
   }
   .btn:focus-visible, .field input:focus-visible,
   .expand-btn:focus-visible { outline: 2px solid Highlight; }
   .status-ok, .status-fail, .status-comp-ok, .status-comp-fail { color: CanvasText; }
   .censor { background-color: CanvasText; }
+  /* Lit states rely on colour+text; forced colours flatten colour, so the
+     state text ("verified ✓" / "failed ✗") and lock glyph carry the meaning. */
+  .mech-lock[data-lit="ok"], .mech-lock[data-lit="fail"],
+  .mech-out[data-lit="ok"], .mech-out[data-lit="fail"] { border-color: CanvasText; background: Canvas; color: CanvasText; }
+  .sig-flip { background-color: Highlight; color: HighlightText; }
 }
 
 /* ── Reduced motion ────────────────────────────────────────────────────── */

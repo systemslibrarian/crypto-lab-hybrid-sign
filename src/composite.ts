@@ -170,15 +170,18 @@ export function compositeVerify(
 // ── Tamper helpers ─────────────────────────────────────────────────────────
 export function tamperMldsaPortion(sig: Uint8Array): Uint8Array {
   const tampered = sig.slice();
-  // Flip bits in the middle of the ML-DSA portion
-  tampered[1000] ^= 0xff;
-  tampered[1001] ^= 0xff;
+  // Flip bits at the very start of the ML-DSA portion. Early bytes so the change
+  // lands inside the UI's byte-preview window (the demo highlights flipped bytes
+  // in place); any single-byte flip in this portion breaks ML-DSA verification.
+  tampered[0] ^= 0xff;
+  tampered[1] ^= 0xff;
   return tampered;
 }
 
 export function tamperEd25519Portion(sig: Uint8Array): Uint8Array {
   const tampered = sig.slice();
-  // Flip bits in the Ed25519 portion
+  // Flip bits at the start of the Ed25519 portion (offset 3309), which the UI's
+  // per-half preview shows, so the tamper is visible where it happens.
   const offset = ML_DSA_65.signatureBytes;
   tampered[offset] ^= 0xff;
   tampered[offset + 1] ^= 0xff;

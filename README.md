@@ -6,6 +6,8 @@ Browser-based PQ/T Composite Signature demo implementing the Ed25519 + ML-DSA-65
 
 A composite signature combines an Ed25519 signature (classical, 128-bit security) with an ML-DSA-65 signature (post-quantum, ~192-bit security). Both must verify for the composite to be accepted. Forging requires breaking **both** independent algorithm families — elliptic-curve discrete log and module lattice cryptography — simultaneously.
 
+The demo opens with a plain-language hook (a composite signature is two signatures stapled together — one today's-crypto, one quantum-proof — trusted only if **both** check out) and a live **two-lock AND-gate diagram**: message M feeds a classical Ed25519 lock and a post-quantum ML-DSA-65 lock, both feeding an AND gate whose ACCEPT/REJECT output lights green/red in real time as you Verify, tamper, or run a break scenario. The `M′` construction is glossed term-by-term (Prefix, Label, ctx, pre-hash), the 3,373-byte blob is drawn as two labelled halves whose bytes flip in place when a half is tampered, and a "why Shor breaks one but not the other" aside explains the quantum asymmetry (discrete log vs module lattices) that is the whole reason for the pairing.
+
 Key sizes: private 4,064 bytes · public 1,984 bytes · signature 3,373 bytes  
 Algorithm identifier: `COMPSIG-MLDSA65-ED25519-SHA512`  
 TLS 1.3 codepoint: `0x090B (mldsa65_ed25519)`
@@ -56,9 +58,11 @@ npm run dev
 
 ## The Five Exhibits
 
+A plain-language **primer** sits above the exhibits: a one-sentence hook, a small caption demoting the standards nomenclature (LAMPS draft-16, TLS `0x090B`), and a live **two-lock AND-gate diagram** (message M → classical Ed25519 lock + post-quantum ML-DSA-65 lock → AND gate → ACCEPT/REJECT) that lights green/red from the real verifier's output as you use Exhibits 2 and 3.
+
 1. **Composite Keypair** — Live generation showing Ed25519 and ML-DSA-65 component keys side by side with sizes and security properties
-2. **Sign and Verify** — Step-by-step composite signing (builds M′ = Prefix ‖ Label ‖ len(ctx) ‖ ctx ‖ SHA-512(M), signs with both algorithms) and per-component verification with tamper and copy-hex buttons
-3. **Break Scenarios** — Simulate ML-DSA lattice break (Ed25519 catches it), quantum break of Ed25519 (ML-DSA catches it), and the residual double break (composite forged). Each simulation feeds a real forged signature to the real verifier — the broken component is signed with the live key so it genuinely verifies, the intact component gets random bytes that genuinely fail, and every ✓/✗ is the literal output of `compositeVerify`. Nothing is narrated or faked.
+2. **Sign and Verify** — Step-by-step composite signing with each term of the M′ = Prefix ‖ Label ‖ len(ctx) ‖ ctx ‖ SHA-512(M) representative glossed inline (domain-separator prefix, algorithm label, caller context, pre-hash), the 3,373-byte signature drawn as two labelled halves (ML-DSA 3,309 B ‖ Ed25519 64 B) whose bytes flip in place when tampered, plus per-component verification with tamper and copy-hex buttons
+3. **Break Scenarios** — A "why Shor breaks one but not the other" aside (elliptic-curve discrete log vs module lattices) precedes three simulations: ML-DSA lattice break (Ed25519 catches it), quantum break of Ed25519 (ML-DSA catches it), and the residual double break (composite forged). Each simulation feeds a real forged signature to the real verifier — the broken component is signed with the live key so it genuinely verifies, the intact component gets random bytes that genuinely fail, and every ✓/✗ is the literal output of `compositeVerify`. Nothing is narrated or faked.
 4. **Composite vs Single Algorithm** — Side-by-side size and security comparison; TLS/SSH/X.509 deployment context
 5. **Why This Matters** — The 25-year threat model, the crypto-lab story arc (KEMs + signatures), real-world deployment status
 
