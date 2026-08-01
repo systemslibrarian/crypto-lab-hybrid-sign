@@ -30,7 +30,7 @@ export const COMPOSITE_PREFIX = new TextEncoder().encode(
  * Domain separator / ML-DSA context label.
  * Per draft-16 for the id-MLDSA65-Ed25519-SHA512 OID / TLS codepoint 0x090B.
  */
-export const COMPOSITE_LABEL = 'COMPSIG-MLDSA65-ED25519-SHA512';
+export const COMPOSITE_LABEL = 'COMPSIG-MLDSA65-Ed25519-SHA512';
 export const COMPOSITE_LABEL_BYTES = new TextEncoder().encode(COMPOSITE_LABEL);
 
 // ── Total signature size: ML-DSA-65 (3309) || Ed25519 (64) = 3373 bytes ───

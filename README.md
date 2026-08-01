@@ -9,7 +9,7 @@ A composite signature combines an Ed25519 signature (classical, 128-bit security
 The demo opens with a plain-language hook (a composite signature is two signatures stapled together — one today's-crypto, one quantum-proof — trusted only if **both** check out) and a live **two-lock AND-gate diagram**: message M feeds a classical Ed25519 lock and a post-quantum ML-DSA-65 lock, both feeding an AND gate whose ACCEPT/REJECT output lights green/red in real time as you Verify, tamper, or run a break scenario. The `M′` construction is glossed term-by-term (Prefix, Label, ctx, pre-hash), the 3,373-byte blob is drawn as two labelled halves whose bytes flip in place when a half is tampered, and a "why Shor breaks one but not the other" aside explains the quantum asymmetry (discrete log vs module lattices) that is the whole reason for the pairing.
 
 Key sizes: private 4,064 bytes · public 1,984 bytes · signature 3,373 bytes  
-Algorithm identifier: `COMPSIG-MLDSA65-ED25519-SHA512`  
+Algorithm identifier: `COMPSIG-MLDSA65-Ed25519-SHA512`  
 TLS 1.3 codepoint: `0x090B (mldsa65_ed25519)`
 
 ## When to Use It
@@ -32,7 +32,7 @@ Generate a composite keypair with its Ed25519 and ML-DSA-65 component keys side 
 - Composite signatures protect against **single** algorithm breaks. A simultaneous break of both algorithms defeats the composite. The assumption is that independent algorithm families (discrete log vs lattice) don't fall at the same moment.
 - 3,373-byte signatures are ~53× larger than Ed25519 alone. Protocols with tight size budgets (constrained IoT, blockchain transactions) may not tolerate this.
 - Both components must be implemented correctly. A bug in either half weakens the composite to just the other algorithm's security.
-- The composite label (`COMPSIG-MLDSA65-ED25519-SHA512`) and prefix (`CompositeAlgorithmSignatures2025`) are domain separators — omitting them or using wrong values breaks interoperability even though local verification may still succeed.
+- The composite label (`COMPSIG-MLDSA65-Ed25519-SHA512`) and prefix (`CompositeAlgorithmSignatures2025`) are domain separators — omitting them or using wrong values breaks interoperability even though local verification may still succeed.
 - Ed25519 and ML-DSA-65 have different failure modes against side-channel attacks. Implementers must harden both components — composites don't auto-protect against timing attacks.
 
 ## Real-World Usage

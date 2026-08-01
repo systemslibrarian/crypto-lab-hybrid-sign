@@ -37,7 +37,7 @@ describe('spec constants', () => {
   });
 
   it('label and sizes match draft-16 / FIPS 204', () => {
-    expect(COMPOSITE_LABEL).toBe('COMPSIG-MLDSA65-ED25519-SHA512');
+    expect(COMPOSITE_LABEL).toBe('COMPSIG-MLDSA65-Ed25519-SHA512');
     expect(ML_DSA_65.signatureBytes).toBe(3309);
     expect(ED25519.signatureBytes).toBe(64);
     expect(COMPOSITE_SIG_BYTES).toBe(3373);

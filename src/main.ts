@@ -311,7 +311,7 @@ function renderApp(): void {
         Build the message representative both algorithms will sign:<br>
         <span class="mprime">M&prime; =
           <abbr class="gloss gloss-prefix" title="Prefix: a fixed domain-separator string (CompositeAlgorithmSignatures2025) so a composite signature can never be mistaken for a plain Ed25519 or ML-DSA one — prevents cross-protocol attacks.">Prefix</abbr> &Vert;
-          <abbr class="gloss gloss-label" title="Label: names this exact algorithm combo (COMPSIG-MLDSA65-ED25519-SHA512) so a signature for one pairing is not accepted by another.">Label</abbr> &Vert;
+          <abbr class="gloss gloss-label" title="Label: names this exact algorithm combo (COMPSIG-MLDSA65-Ed25519-SHA512) so a signature for one pairing is not accepted by another.">Label</abbr> &Vert;
           <abbr class="gloss gloss-ctx" title="len(ctx) ‖ ctx: a caller-supplied context string (and its length) that binds the signature to a use, e.g. an app or document ID.">len(ctx) &Vert; ctx</abbr> &Vert;
           <abbr class="gloss gloss-ph" title="SHA-512(M): the pre-hash. Both algorithms sign this fixed 64-byte digest instead of the raw message, so message length never matters and both sign exactly the same bytes.">SHA-512(M)</abbr></span>
         <span class="gloss-hint">(hover / tap each term)</span>
