@@ -63,7 +63,6 @@ body { min-height: 100vh; }
 .cl-hero-title .pq { color: var(--pq-color); }
 .cl-hero-title .plus { color: var(--text-muted); }
 
-/* BEGIN cl-hero standard — managed, keep in sync across fleet */
 /* Theme mapping for this demo: --text-dim -> --text-muted; accent -> --pq-color
    (the composite/PQ purple, which has AA-safe values in both themes). */
 .cl-hero{display:flex;align-items:flex-start;justify-content:space-between;gap:clamp(1rem,4vw,3rem);flex-wrap:wrap;margin:clamp(1rem,3vw,2rem) 0 1.5rem;}
@@ -74,8 +73,7 @@ body { min-height: 100vh; }
 .cl-hero-why{flex:0 1 min(40%,26rem);min-width:min(100%,15rem);border:1px solid var(--border);border-radius:10px;padding:.85rem 1.05rem;background:color-mix(in oklab,var(--pq-color) 6%,transparent);}
 .cl-hero-why-label{display:block;font-size:.68rem;font-weight:700;letter-spacing:.14em;}
 .cl-hero-why-text{margin:.35rem 0 0;font-size:.95rem;line-height:1.5;}
-@media (max-width:640px){.cl-hero{flex-direction:column;}.cl-hero-why{flex-basis:auto;width:100%;}}
-/* END cl-hero standard */
+@media (max-width:640px){.cl-hero{flex-direction:column;}.cl-hero-why{flex-basis:auto;width:100%;}.cl-hero-main{flex-basis:auto;min-width:0;}}
 
 /* ── Plain-language primer + mechanism diagram ─────────────────────────── */
 .primer {
@@ -238,7 +236,8 @@ body { min-height: 100vh; }
 .why-shor-lead .pq { color: var(--pq-color); font-weight: 600; }
 .why-shor-lead a, .why-shor-more a { color: var(--ed-color); }
 .why-shor-more { margin-top: 0.6rem; font-size: 0.83rem; }
-.why-shor-more summary { cursor: pointer; color: var(--text-muted); font-weight: 600; }
+/* >=44px tap target (WCAG 2.5.5) — padding keeps the native disclosure marker. */
+.why-shor-more summary { cursor: pointer; color: var(--text-muted); font-weight: 600; padding: 0.6rem 0; min-height: 44px; }
 .why-shor-more summary:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
 .why-shor-more p { margin-top: 0.5rem; color: var(--text-muted); line-height: 1.6; }
 
@@ -617,6 +616,9 @@ pre {
   color: var(--text-muted);
   font-weight: 600;
   letter-spacing: 0.02em;
+  /* >=44px tap target (WCAG 2.5.5) — padding keeps the native disclosure marker. */
+  padding: 0.6rem 0;
+  min-height: 44px;
 }
 .method-note summary:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
 .method-note p { color: var(--text-muted); line-height: 1.6; margin-top: 0.6rem; }

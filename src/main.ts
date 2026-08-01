@@ -57,8 +57,10 @@ function readContext(): Uint8Array | null {
   const ctxStr = el<HTMLInputElement>('sign-context').value;
   const ctx = ctxStr ? new TextEncoder().encode(ctxStr) : new Uint8Array(0);
   if (ctx.length > 255) {
-    setText('ctx-error', `Context is ${ctx.length} bytes; the maximum is 255.`);
+    // Reveal the role="alert" node BEFORE writing its text: a live region that is
+    // display:none when it mutates is not announced by most screen readers.
     show('ctx-error');
+    setText('ctx-error', `Context is ${ctx.length} bytes; the maximum is 255.`);
     return null;
   }
   hide('ctx-error');
@@ -303,7 +305,7 @@ function renderApp(): void {
   </div>
 
   <div id="sign-steps" class="hidden" style="margin-top:1rem">
-    <h4 style="font-size:0.82rem;color:var(--text-muted);margin-bottom:0.5rem">Signing steps:</h4>
+    <h3 style="font-size:0.82rem;color:var(--text-muted);margin-bottom:0.5rem">Signing steps:</h3>
     <ul class="steps">
       <li>
         Build the message representative both algorithms will sign:<br>
@@ -377,7 +379,7 @@ function renderApp(): void {
     </p>
   </details>
 
-  <div class="why-shor" aria-label="Why Shor's algorithm breaks one algorithm but not the other">
+  <aside class="why-shor" aria-label="Why Shor's algorithm breaks one algorithm but not the other">
     <p class="why-shor-lead">
       <strong>Why does a quantum computer break Ed25519 but not ML-DSA-65?</strong>
       Because they rest on different math. Ed25519&rsquo;s security comes from the
@@ -405,7 +407,7 @@ function renderApp(): void {
         <a href="https://systemslibrarian.github.io/crypto-lab-dilithium-seal/" target="_blank" rel="noreferrer">ML-DSA-65 (PQ half)</a>.
       </p>
     </details>
-  </div>
+  </aside>
 
   <div class="scenario">
     <h3 style="color:var(--pq-color)">Scenario 1 — ML-DSA Catastrophically Broken</h3>
@@ -754,11 +756,13 @@ function wireBreakButton(
         kind === 'mldsa' ? simulateMldsaBreak(currentKeyPair!) :
         kind === 'quantum' ? simulateQuantumBreak(currentKeyPair!) :
         simulateDoubleBreak(currentKeyPair!);
+      // Unhide the aria-live panel first — a live region mutated while display:none
+      // is not announced.
+      show(resultId);
       setHtml(resultId, renderBreakResult(kind, r));
       // Light the shared AND-gate diagram with this forgery's real verifier output,
       // so the learner sees which lock held (or, in the double break, that both fell).
       setMechanism(r.forgedEd25519Valid, r.forgedMldsaValid, r.forgedValid);
-      show(resultId);
       btn.disabled = false;
       btn.textContent = label;
     }, 10);
@@ -794,8 +798,9 @@ function verifyAndDisplay(sig: Uint8Array, label: string): void {
       </span>
     </div>
   `;
-  setHtml('verify-panel', html);
+  // Unhide before writing so the aria-live region actually announces the result.
   show('verify-result');
+  setHtml('verify-panel', html);
 }
 
 // ── Boot ───────────────────────────────────────────────────────────────────
