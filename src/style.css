@@ -6,6 +6,15 @@
   --surface: #12121a;
   --surface2: #1a1a26;
   --border: #2a2a3a;
+  /* Control boundaries only (WCAG 2.1 SC 1.4.11). `.field input` / `.field
+     textarea` are filled with --surface2 (#1a1a26) inside an --surface (#12121a)
+     exhibit — 1.10:1 — so the border is the only thing delineating the field.
+     --border itself is 1.40:1 on --bg and 1.22:1 on --surface2. #696974 is
+     derived from it along the same indigo-slate hue and measures 3.62:1 on
+     --bg, 3.42:1 on --surface, 3.16:1 on --surface2. --border is left unchanged
+     for decorative rules — exhibit outlines, dividers, table and key-card
+     borders. */
+  --border-strong: #696974;
   --text: #e8e8f0;
   --text-muted: #9a9ac0;
   --focus-ring: #ffd700;
@@ -41,6 +50,9 @@
   --surface: #ffffff;
   --surface2: #eeeef6;
   --border: #ccccdd;
+  /* See the dark-theme note above. --border is 1.19:1 on --surface here;
+     #858590 is 3.33:1 on --bg, 3.65:1 on --surface, 3.16:1 on --surface2. */
+  --border-strong: #858590;
   --text: #1a1a2e;
   --text-muted: #4a4a6a;
   --focus-ring: #6d28d9;
@@ -391,7 +403,9 @@ body { min-height: 100vh; }
 .field input, .field textarea {
   width: 100%;
   background-color: var(--surface2);
-  border: 1px solid var(--border);
+  /* Load-bearing control boundary (WCAG 2.1 SC 1.4.11) — --border-strong, not
+     --border; the fill is within 1.10:1 of the surrounding exhibit. */
+  border: 1px solid var(--border-strong);
   border-radius: 6px;
   color: var(--text);
   padding: 0.5rem 0.75rem;
