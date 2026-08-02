@@ -5,7 +5,8 @@ import { defineConfig } from '@playwright/test';
  * `vite preview`, so what passes here is what actually ships to Pages.
  * Run `npm run build` first (CI does).
  */
-const PORT = 4221;
+// Overridable so a busy port on a dev box does not block the gate.
+const PORT = process.env.PREVIEW_PORT ?? '4221';
 const BASE = '/crypto-lab-hybrid-sign/';
 const URL = `http://localhost:${PORT}${BASE}`;
 

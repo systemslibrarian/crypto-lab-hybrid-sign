@@ -17,6 +17,7 @@ import {
   ML_DSA_65,
 } from './composite';
 import {
+  simulateNoBreak,
   simulateMldsaBreak,
   simulateQuantumBreak,
   simulateDoubleBreak,
@@ -143,10 +144,44 @@ describe('tamper detection (both must verify)', () => {
   });
 });
 
+// The scenarios used to differ only in which portion of an otherwise-valid
+// signature was overwritten with random bytes, and the UI labelled each half
+// from the button that was pressed. They now build a genuine forgery: halves
+// the attacker has broken are signed with the honest key, halves they have not
+// are signed with a key pair they generate for themselves, and every field
+// below is compositeVerify's answer on the bytes produced.
 describe('break scenarios', () => {
-  it('ML-DSA broken: ML-DSA forges, Ed25519 catches it, composite rejects', () => {
-    const r = simulateMldsaBreak(generateCompositeKeyPair());
+  const MSG = new TextEncoder().encode('Paul Clark certified 2026');
+
+  it('forges over a different message than the one that was signed', () => {
+    const kp = generateCompositeKeyPair();
+    const r = simulateDoubleBreak(kp, MSG);
+    expect(r.forgedMessageText).not.toBe(new TextDecoder().decode(MSG));
+    expect(r.forgedMessageText.startsWith('Paul Clark certified 2026')).toBe(true);
+    // The honest signature over the original message must NOT cover the forged one.
+    const pub = compositePublicKeyFrom(kp);
+    const honest = compositeSign(kp, MSG);
+    expect(compositeVerify(pub, r.forgedMessage, honest).valid).toBe(false);
+  });
+
+  it('no break: the attacker signs with their own keys and both halves reject', () => {
+    const r = simulateNoBreak(generateCompositeKeyPair(), MSG);
     expect(r.legitValid).toBe(true);
+    expect(r.ed25519.usedHonestKey).toBe(false);
+    expect(r.mldsa.usedHonestKey).toBe(false);
+    expect(r.forgedMldsaValid).toBe(false);
+    expect(r.forgedEd25519Valid).toBe(false);
+    expect(r.forgedValid).toBe(false);
+    expect(r.caughtBy).toBe('both');
+    // A well-formed signature was still produced — it is simply the wrong one.
+    expect(r.forgedSignature.length).toBe(COMPOSITE_SIG_BYTES);
+  });
+
+  it('ML-DSA broken: ML-DSA forges, Ed25519 catches it, composite rejects', () => {
+    const r = simulateMldsaBreak(generateCompositeKeyPair(), MSG);
+    expect(r.legitValid).toBe(true);
+    expect(r.mldsa.usedHonestKey).toBe(true);
+    expect(r.ed25519.usedHonestKey).toBe(false);
     expect(r.forgedMldsaValid).toBe(true);   // attacker forged a valid ML-DSA sig
     expect(r.forgedEd25519Valid).toBe(false); // attacker cannot forge Ed25519
     expect(r.forgedValid).toBe(false);
@@ -154,19 +189,45 @@ describe('break scenarios', () => {
   });
 
   it('quantum break: Ed25519 forged, ML-DSA catches it, composite rejects', () => {
-    const r = simulateQuantumBreak(generateCompositeKeyPair());
+    const r = simulateQuantumBreak(generateCompositeKeyPair(), MSG);
     expect(r.legitValid).toBe(true);
+    expect(r.ed25519.usedHonestKey).toBe(true);
     expect(r.forgedEd25519Valid).toBe(true);  // Shor-forged Ed25519
     expect(r.forgedMldsaValid).toBe(false);   // attacker cannot forge ML-DSA
     expect(r.forgedValid).toBe(false);
     expect(r.caughtBy).toBe('mldsa');
   });
 
+  // The negative verdict: with both families down the forgery must actually be
+  // accepted by the real verifier, or none of the rejections above mean anything.
   it('double break: both forged, composite accepts the forgery (residual risk)', () => {
-    const r = simulateDoubleBreak(generateCompositeKeyPair());
+    const kp = generateCompositeKeyPair();
+    const r = simulateDoubleBreak(kp, MSG);
     expect(r.forgedMldsaValid).toBe(true);
     expect(r.forgedEd25519Valid).toBe(true);
     expect(r.forgedValid).toBe(true);
     expect(r.caughtBy).toBe('none');
+    // Re-run the verifier independently on the exact bytes the attacker built.
+    expect(
+      compositeVerify(compositePublicKeyFrom(kp), r.forgedMessage, r.forgedSignature).valid
+    ).toBe(true);
+  });
+
+  it('the forgery is bound to the context it was made under', () => {
+    const kp = generateCompositeKeyPair();
+    const ctx = new TextEncoder().encode('invoice-signing');
+    const r = simulateDoubleBreak(kp, MSG, ctx);
+    const pub = compositePublicKeyFrom(kp);
+    // Accepted under its own context...
+    expect(compositeVerify(pub, r.forgedMessage, r.forgedSignature, ctx).valid).toBe(true);
+    // ...and rejected under any other, because ctx is bound into M'.
+    expect(compositeVerify(pub, r.forgedMessage, r.forgedSignature).valid).toBe(false);
+  });
+
+  it('a forgery for one keypair does not verify against another', () => {
+    const victim = generateCompositeKeyPair();
+    const r = simulateDoubleBreak(victim, MSG);
+    const stranger = compositePublicKeyFrom(generateCompositeKeyPair());
+    expect(compositeVerify(stranger, r.forgedMessage, r.forgedSignature).valid).toBe(false);
   });
 });

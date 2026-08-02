@@ -696,3 +696,12 @@ footer {
 }
 /* Themed link color — UA default link blue fails contrast on the dark bg. */
 footer a { color: var(--ed-color); }
+
+/* Forgery detail line under the break-scenario verdict — states which message
+   and context the attempt was actually made against. */
+.forged-detail {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  margin: 0.6rem 0 0;
+  overflow-wrap: anywhere;
+}

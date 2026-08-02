@@ -15,11 +15,12 @@ import {
   type CompositePublicKey,
 } from './composite';
 import {
+  simulateNoBreak,
   simulateMldsaBreak,
   simulateQuantumBreak,
   simulateDoubleBreak,
+  forgedMessageFor,
   DOUBLE_BREAK_NARRATIVE,
-  FORGED_MESSAGE_TEXT,
   type BreakResult,
 } from './breaks';
 
@@ -46,6 +47,15 @@ function setHtml(id: string, html: string): void {
 
 function show(id: string): void { el(id).classList.remove('hidden'); }
 function hide(id: string): void { el(id).classList.add('hidden'); }
+
+/** The forged message echoes user-controlled text, so it is escaped for display. */
+function escapeHtml(text: string): string {
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
 
 /**
  * Read the context input as bytes. The composite combiner encodes len(ctx) in a
@@ -363,19 +373,26 @@ function renderApp(): void {
 
   <p class="narrative" style="margin-bottom:0.8rem">
     What happens when an attacker breaks <strong>one</strong> of the two algorithms?
-    Each simulation forges a signature on the message
-    &ldquo;<em id="forged-msg">—</em>&rdquo; and feeds it to the real verifier.
+    Each simulation builds a real forgery over
+    &ldquo;<em id="forged-msg">&mdash;</em>&rdquo; &mdash; your message with the attacker&rsquo;s
+    addition &mdash; under the same context, and feeds it to the real verifier.
   </p>
 
   <details class="method-note">
     <summary>How these simulations stay honest</summary>
     <p>
       We can&rsquo;t actually break Ed25519 or ML-DSA-65 in a browser. We model an
-      attacker&rsquo;s forging power instead: the <strong>broken</strong> component is
-      signed with the real private key, so it genuinely verifies — exactly as a true
-      forgery would. The <strong>intact</strong> component gets random bytes, which fail
-      verification exactly as a forgery attempt would. Every ✓/✗ below is the literal
-      output of <code>compositeVerify</code> on the forged signature. Nothing is faked.
+      attacker&rsquo;s forging power instead, and then let them use it. The
+      <strong>broken</strong> component is signed with the real private key, so it
+      genuinely verifies &mdash; exactly as a true forgery would. The <strong>intact</strong>
+      component is signed with a key pair the attacker generates for themselves, which is
+      the strongest move actually available to someone without the key. Both halves are
+      then assembled by the same concatenation the signer uses, over the same message
+      representative M&prime;, and handed to <code>compositeVerify</code>. Every
+      &#10003;/&#10007; below, the accept/reject line, and the sentence naming which half
+      caught the forgery are read off that verifier&rsquo;s output &mdash; not off which
+      button you pressed. Each run also re-signs the forged message honestly and checks
+      that it verifies, so a rejection is the forgery failing rather than the harness.
     </p>
   </details>
 
@@ -408,6 +425,15 @@ function renderApp(): void {
       </p>
     </details>
   </aside>
+
+  <div class="scenario">
+    <h3>Scenario 0 &mdash; Nothing Broken (the baseline)</h3>
+    <p class="timeline">Timeline: today. The attacker has your public key and nothing else, and tries anyway.</p>
+    <div class="btn-row">
+      <button class="btn" id="sim-no-break" disabled aria-disabled="true">Simulate Forgery Attempt</button>
+    </div>
+    <div id="no-break-result" class="hidden" aria-live="polite" style="margin-top:0.8rem"></div>
+  </div>
 
   <div class="scenario">
     <h3 style="color:var(--pq-color)">Scenario 1 — ML-DSA Catastrophically Broken</h3>
@@ -572,6 +598,9 @@ function wireEvents(): void {
       signBtn2.removeAttribute('aria-disabled');
 
       // Enable break simulation buttons
+      const noBreakBtn = el<HTMLButtonElement>('sim-no-break');
+      noBreakBtn.disabled = false;
+      noBreakBtn.removeAttribute('aria-disabled');
       const mldsaBreakBtn = el<HTMLButtonElement>('sim-mldsa-break');
       mldsaBreakBtn.disabled = false;
       mldsaBreakBtn.removeAttribute('aria-disabled');
@@ -582,8 +611,8 @@ function wireEvents(): void {
       dBreakBtn.disabled = false;
       dBreakBtn.removeAttribute('aria-disabled');
 
-      // Populate double-break scenario text + forged-message label
-      setText('forged-msg', FORGED_MESSAGE_TEXT);
+      // Show the message a forgery would target, given what is in the form now.
+      setText('forged-msg', new TextDecoder().decode(forgedMessageFor(readMessage())));
       el('double-break-text').textContent = DOUBLE_BREAK_NARRATIVE;
     }, 10);
   });
@@ -681,12 +710,13 @@ function wireEvents(): void {
   });
 
   // Exhibit 3 — break simulations (all three share one honest renderer)
+  wireBreakButton('sim-no-break', 'Simulate Forgery Attempt', 'no-break-result', 'none');
   wireBreakButton('sim-mldsa-break', 'Simulate ML-DSA Break', 'mldsa-break-result', 'mldsa');
   wireBreakButton('sim-quantum-break', 'Simulate Quantum Break', 'quantum-break-result', 'quantum');
   wireBreakButton('sim-double-break', 'Simulate Double Break', 'double-break-result', 'double');
 }
 
-type BreakKind = 'mldsa' | 'quantum' | 'double';
+type BreakKind = 'none' | 'mldsa' | 'quantum' | 'double';
 
 function statusCell(valid: boolean): string {
   return valid
@@ -694,28 +724,42 @@ function statusCell(valid: boolean): string {
     : '<span class="status-fail">✗ INVALID</span>';
 }
 
-function renderBreakResult(kind: BreakKind, r: BreakResult): string {
-  // Outcome line.
+const GUARD_NAME = { ed25519: 'Ed25519', mldsa: 'ML-DSA-65' } as const;
+const GUARD_KIND = { ed25519: 'classical', mldsa: 'post-quantum' } as const;
+
+/**
+ * Everything below is read off the forgery attempt, not off which button was
+ * pressed: `caughtBy` is derived from compositeVerify's per-component output,
+ * and each half reports whether the attacker signed it with the honest key.
+ */
+function renderBreakResult(r: BreakResult): string {
   let verdict: string;
-  if (kind === 'double') {
-    verdict = r.forgedValid
-      ? '<strong style="color:var(--danger)">Composite FORGED.</strong> Both families fell at once, so both components verify and the composite accepts the forgery. This is the residual risk — defense in depth, not invincibility.'
-      : '<strong style="color:var(--danger)">Unexpected: composite rejected a double-forged signature.</strong>';
+  if (r.forgedValid) {
+    verdict =
+      '<strong style="color:var(--danger)">Composite FORGED.</strong> Both components verified, so the composite accepted the forgery. This is the residual risk — defense in depth, not invincibility.';
+  } else if (r.caughtBy === 'both') {
+    verdict =
+      '<strong style="color:var(--success)">Both halves caught the forgery.</strong> The attacker held neither signing key, so neither component verified and the composite rejects twice over.';
+  } else if (r.caughtBy === 'none') {
+    verdict =
+      '<strong style="color:var(--danger)">Unexpected: the composite rejected but no component did.</strong>';
   } else {
-    const guardName = r.caughtBy === 'ed25519' ? 'Ed25519' : 'ML-DSA-65';
-    const guardKind = r.caughtBy === 'ed25519' ? 'classical' : 'post-quantum';
-    verdict = !r.forgedValid && r.caughtBy !== 'none'
-      ? `<strong style="color:var(--success)">${guardName} caught the forgery.</strong> One algorithm was broken, but the intact ${guardKind} component held — so the composite rejects.`
-      : '<strong style="color:var(--danger)">Unexpected: composite accepted the forged signature.</strong>';
+    const guardName = GUARD_NAME[r.caughtBy];
+    const guardKind = GUARD_KIND[r.caughtBy];
+    verdict = `<strong style="color:var(--success)">${guardName} caught the forgery.</strong> One algorithm was broken, but the intact ${guardKind} component held — so the composite rejects.`;
+  }
+  if (!r.legitValid) {
+    verdict +=
+      ' <strong style="color:var(--danger)">Harness fault: an honest signature over this message did not verify.</strong>';
   }
 
-  // Per-component description of what the attacker did.
-  const mldsaForged = kind !== 'quantum'; // forged (valid) in mldsa-break and double-break
-  const edForged = kind !== 'mldsa';      // forged (valid) in quantum-break and double-break
-  const mldsaNote = mldsaForged ? 'forged by attacker' : 'attacker cannot forge';
-  const edNote = edForged
-    ? (kind === 'quantum' ? 'quantum-forged via Shor' : 'forged by attacker')
-    : 'attacker cannot forge';
+  // What the attacker actually had for each half, from the attempt itself.
+  const mldsaNote = r.mldsa.usedHonestKey
+    ? 'forged with the broken algorithm'
+    : 'signed with the attacker\u2019s own key';
+  const edNote = r.ed25519.usedHonestKey
+    ? 'quantum-forged via Shor'
+    : 'signed with the attacker\u2019s own key';
 
   const compositeCell = r.forgedValid
     ? '<span class="status-comp-fail">✓ ACCEPTED — forgery succeeds</span>'
@@ -735,6 +779,9 @@ function renderBreakResult(kind: BreakKind, r: BreakResult): string {
         <span>Forged composite:</span>
         <span>${compositeCell}</span>
       </div>
+      <p class="forged-detail">Forged over &ldquo;<em>${escapeHtml(r.forgedMessageText)}</em>&rdquo;${
+        r.ctx.length ? ` under the same ${r.ctx.length}-byte context` : ''
+      }, verified against your public key.</p>
       <p class="narrative" style="margin-top:0.6rem">${verdict}</p>
     </div>`;
 }
@@ -747,22 +794,30 @@ function wireBreakButton(
 ): void {
   el(btnId).addEventListener('click', () => {
     if (!currentKeyPair) return;
+    const ctx = readContext();
+    if (ctx === null) return;
     const btn = el<HTMLButtonElement>(btnId);
     btn.disabled = true;
     btn.innerHTML = '<span class="spinner"></span>Simulating…';
 
     setTimeout(() => {
-      const r =
-        kind === 'mldsa' ? simulateMldsaBreak(currentKeyPair!) :
-        kind === 'quantum' ? simulateQuantumBreak(currentKeyPair!) :
-        simulateDoubleBreak(currentKeyPair!);
+      // The forgery targets the message and context currently in the form, so
+      // the attempt runs against what you actually signed.
+      const msg = readMessage();
+      const run =
+        kind === 'none' ? simulateNoBreak :
+        kind === 'mldsa' ? simulateMldsaBreak :
+        kind === 'quantum' ? simulateQuantumBreak :
+        simulateDoubleBreak;
+      const r = run(currentKeyPair!, msg, ctx);
       // Unhide the aria-live panel first — a live region mutated while display:none
       // is not announced.
       show(resultId);
-      setHtml(resultId, renderBreakResult(kind, r));
+      setHtml(resultId, renderBreakResult(r));
       // Light the shared AND-gate diagram with this forgery's real verifier output,
       // so the learner sees which lock held (or, in the double break, that both fell).
       setMechanism(r.forgedEd25519Valid, r.forgedMldsaValid, r.forgedValid);
+      setText('forged-msg', r.forgedMessageText);
       btn.disabled = false;
       btn.textContent = label;
     }, 10);
