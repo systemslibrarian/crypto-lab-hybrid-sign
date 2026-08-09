@@ -495,7 +495,7 @@ function renderApp(): void {
 
   <div style="margin-top:1rem">
     <h3 style="font-size:0.88rem;margin-bottom:0.6rem;color:var(--text-muted)">TLS 1.3 SignatureScheme registry</h3>
-    <pre>0x090A: mldsa44_ecdsa_secp256r1_sha256   (Level 2 + P-256)
+    <pre role="region" aria-label="TLS 1.3 SignatureScheme registry codepoints (scrollable)" tabindex="0">0x090A: mldsa44_ecdsa_secp256r1_sha256   (Level 2 + P-256)
 0x090B: mldsa65_ed25519                   (Level 3 + Ed25519) ← this demo
 SSH:    ssh-ed25519-ml-dsa-65             (draft-josefsson-ssh-ed25519mldsa65)
 X.509:  id-MLDSA65-Ed25519-SHA512         (draft-ietf-lamps-pq-composite-sigs-16)</pre>

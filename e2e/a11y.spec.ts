@@ -1,57 +1,51 @@
-import AxeBuilder from '@axe-core/playwright';
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test } from '@playwright/test';
+import { boot, driveAllStates, NARROW, reportCollected, watchPageErrors } from './gate';
 
 /**
- * WCAG regression gate. Deploys are gated on the composite-signature vitest
- * suite; this gates them on accessibility the same way. Scans the full page
- * with every collapsible expanded, in both themes.
+ * WCAG A/AA regression gate. Deploys are already gated on the composite-signature
+ * vitest suite and on `forgery.spec.ts`; this gates them on accessibility the
+ * same way.
+ *
+ * The lab is driven along everything it teaches: the arrival state, where eight
+ * of nine controls are locked and all seven output panels are absent; both skip
+ * links focused; both disclosures opened through their summaries; the composite
+ * keypair; the signature, expanded to its full 6,746 hex characters and
+ * collapsed again, and copied; a clean verify with both locks lit green; each
+ * tamper branch with its flip marks; all four break scenarios including the
+ * double break, whose forgery is genuinely ACCEPTED; the over-length-context
+ * error; a long unbroken message echoed into prose as the forgery target; and
+ * the regenerate that puts the diagram back to idle. Every one of those states
+ * is scanned, in both themes, at desktop and phone width.
+ *
+ * Clipboard permission is granted because `#copy-sig` calls
+ * `navigator.clipboard.writeText`: without the grant the promise rejects, the
+ * button reads "Copy failed", and the drive would be asserting against a state
+ * the code never reached.
+ *
+ * See `gate.ts` for why nothing is injected into the page, why no panel is
+ * force-revealed, why the lab's defaults are asserted rather than assumed, and
+ * why `violations` is not the whole oracle.
  */
 
-const TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'];
-
-/** Expand every disclosure/collapsible and neutralize animation so axe sees
- * the fully-revealed DOM in a stable state. */
-async function revealAll(page: Page): Promise<void> {
-  await page.addStyleTag({
-    content: `*,*::before,*::after{animation:none!important;transition:none!important;}`,
+for (const theme of ['dark', 'light'] as const) {
+  test(`no WCAG A/AA violations in ${theme} theme`, async ({ page, context }) => {
+    test.setTimeout(900_000);
+    await context.grantPermissions(['clipboard-read', 'clipboard-write']);
+    const errors = watchPageErrors(page);
+    await boot(page, theme);
+    await driveAllStates(page, theme);
+    expect(errors, errors.join('\n')).toEqual([]);
+    reportCollected();
   });
-  await page.evaluate(() => {
-    for (const details of Array.from(document.querySelectorAll('details'))) {
-      (details as HTMLDetailsElement).open = true;
-    }
-    // reveal any class-hidden / [hidden] panels so their contents are scanned
-    for (const el of Array.from(document.querySelectorAll('.hidden, [hidden]'))) {
-      el.classList.remove('hidden');
-      el.removeAttribute('hidden');
-    }
-    for (const el of Array.from(document.querySelectorAll('.hex-display'))) {
-      el.classList.add('expanded');
-    }
+
+  test(`no WCAG A/AA violations in ${theme} theme at 380px`, async ({ page, context }) => {
+    test.setTimeout(900_000);
+    await context.grantPermissions(['clipboard-read', 'clipboard-write']);
+    const errors = watchPageErrors(page);
+    await page.setViewportSize(NARROW);
+    await boot(page, theme);
+    await driveAllStates(page, `${theme} @380px`);
+    expect(errors, errors.join('\n')).toEqual([]);
+    reportCollected();
   });
-  await page.waitForTimeout(50);
 }
-
-async function scan(page: Page): Promise<void> {
-  const results = await new AxeBuilder({ page }).withTags(TAGS).analyze();
-  const summary = results.violations.map((v) => ({
-    id: v.id,
-    impact: v.impact,
-    help: v.help,
-    nodes: v.nodes.map((n) => n.target.join(' ')).slice(0, 5),
-  }));
-  expect(summary).toEqual([]);
-}
-
-test('no WCAG A/AA violations in dark theme', async ({ page }) => {
-  await page.goto('.');
-  await revealAll(page);
-  await scan(page);
-});
-
-test('no WCAG A/AA violations in light theme', async ({ page }) => {
-  await page.goto('.');
-  await page.locator('#cl-theme-toggle').click();
-  await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
-  await revealAll(page);
-  await scan(page);
-});

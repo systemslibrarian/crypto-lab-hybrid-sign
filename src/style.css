@@ -29,13 +29,38 @@
   --danger: #ff708f;        /* Both fail / private key */
   --success: #3ff08f;
 
-  /* Solid FILL colors — constant across themes. Used only as button/skip-link
-     backgrounds where a fixed black/white label keeps contrast >=4.5:1. */
+  /* Solid FILL colors. Used only as button/skip-link backgrounds where a fixed
+     black/white label keeps contrast >=4.5:1 (SC 1.4.3).
+     That is the LABEL. It says nothing about the BUTTON's own edge against the
+     card behind it (SC 1.4.11, 3:1), which is a separate requirement these
+     fills cannot satisfy on their own: --gold-fill measures 1.40:1 on the white
+     light-theme exhibit and --ed-fill 1.82:1 on --surface2. --btn-edge below is
+     what delineates them; do not delete it on the grounds that the fills are
+     "bright enough". */
   --ed-fill: #00c2f0;
   --pq-fill: #7c3aed;
   --gold-fill: #ffd700;
   --warn-fill: #ffaa00;
-  --danger-fill: #c01038;
+  /* Theme-specific: #c01038 measures only 2.77:1 against --surface2 on the dark
+     theme's scenario cards. #d41846 is 3.29:1 there and 3.57:1 on --surface,
+     and still carries a white label at 5.23:1. The light theme keeps #c01038,
+     which is 5.40:1 on --surface2 there. */
+  --danger-fill: #d41846;
+
+  /* Button edge (SC 1.4.11). Translucent, so it composites over each button's
+     OWN fill — the background paints under the border box — and one token
+     therefore delineates six differently-coloured buttons without a per-variant
+     border. Measured worst case with it: 3.85:1 (light .btn-ed), against 1.00:1
+     for the variant-less .btn before it existed. */
+  --btn-edge: rgba(255, 255, 255, 0.55);
+  --btn-edge-hover: rgba(255, 255, 255, 0.95);
+
+  /* The byte-flip marker in the signature-structure exhibit, and its legend
+     swatch. Its FILL is the cue (SC 1.4.11, 3:1 against the hex around it), so
+     it cannot be --warn-fill in both themes: #ffaa00 is 9.02:1 on the dark
+     --surface2 the hex sits on and 1.65:1 on the light one. */
+  --flip-fill: #ffaa00;
+  --flip-ink: #000;
 
   font-family: 'Segoe UI', system-ui, sans-serif;
   font-size: 15px;
@@ -57,13 +82,30 @@
   --text-muted: #4a4a6a;
   --focus-ring: #6d28d9;
 
-  /* Darkened accents — >=4.5:1 on near-white surfaces. */
-  --ed-color: #0b6e8c;
-  --pq-color: #7c3aed;
+  /* Darkened accents. The bar these have to clear is NOT --surface: the
+     AND-gate diagram tints its own surface with these same hues when a lock
+     lights, so `--success` ink lands on
+     `color-mix(in srgb, var(--success) 15%, var(--surface2))` and each lock name
+     lands on both the success and the danger tint. Values tuned only against
+     near-white measured 4.74–5.02:1 there in the abstract and 3.87–4.27:1 on
+     the tinted surface they are actually painted on — an ink measured against
+     one surface and used a surface deeper. These are the deeper values:
+     worst case across every ink × tint combination the diagram can reach is now
+     4.65:1 (--success on its own 15% tint), and every one of them is >=5.0:1 on
+     --surface / --surface2 / --bg. */
+  --ed-color: #0a5f79;
+  --pq-color: #6929c4;
   --composite-ok: #7a6000;
   --warn: #8a5a00;
-  --danger: #c01038;
-  --success: #0a7a32;
+  --danger: #a60c30;
+  --success: #046b28;
+
+  /* See the dark-theme notes. */
+  --danger-fill: #c01038;
+  --btn-edge: rgba(0, 0, 0, 0.55);
+  --btn-edge-hover: rgba(0, 0, 0, 0.95);
+  --flip-fill: #8a5a00;
+  --flip-ink: #fff;
 }
 
 /* ── Layout ────────────────────────────────────────────────────────────── */
@@ -221,8 +263,8 @@ body { min-height: 100vh; }
 .sig-seg-hex { display: block; font-family: ui-monospace, monospace; font-size: 0.72rem; line-height: 1.5; color: var(--text-muted); word-break: break-all; }
 .sig-seg-ell { color: var(--text-muted); font-style: italic; }
 .sig-flip {
-  background-color: var(--warn-fill);
-  color: #000;
+  background-color: var(--flip-fill);
+  color: var(--flip-ink);
   border-radius: 2px;
   padding: 0 1px;
   font-weight: 700;
@@ -230,7 +272,7 @@ body { min-height: 100vh; }
 .sig-struct-note { margin-top: 0.5rem; font-size: 0.76rem; line-height: 1.5; color: var(--text-muted); }
 .sig-flip-swatch {
   display: inline-block; width: 0.8em; height: 0.8em; vertical-align: -1px;
-  background-color: var(--warn-fill); border-radius: 2px;
+  background-color: var(--flip-fill); border-radius: 2px;
 }
 
 /* ── Why-Shor aside ────────────────────────────────────────────────────── */
@@ -376,15 +418,25 @@ body { min-height: 100vh; }
 .btn {
   padding: 0.6rem 1.2rem;
   border-radius: 7px;
-  border: none;
+  /* Every button carries the SC 1.4.11 edge, including the variant-less `.btn`
+     used by Scenario 0 — which previously set `border: none` and no fill at all,
+     so it rendered in the UA's own ButtonFace and measured 1.00:1 against the
+     scenario card behind it. */
+  background-color: var(--surface2);
+  color: var(--text);
+  border: 1px solid var(--btn-edge);
   font-size: 0.88rem;
   font-weight: 600;
   cursor: pointer;
-  transition: opacity 0.15s;
+  transition: border-color 0.15s;
   min-height: 44px;
   touch-action: manipulation;
 }
-.btn:hover:not(:disabled) { opacity: 0.85; }
+/* Hover strengthens the edge rather than fading the whole button. `opacity:
+   0.85` used to be the hover cue, and opacity compounds: on the light theme it
+   dropped the ML-DSA button's white label from 5.2:1 to 4.40:1 — a hover state
+   that fails AA is still a failure. */
+.btn:hover:not(:disabled) { border-color: var(--btn-edge-hover); }
 .btn:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
 .btn:disabled { opacity: 0.4; cursor: default; }
 
@@ -393,7 +445,7 @@ body { min-height: 100vh; }
 .btn-pq { background-color: var(--pq-fill); color: #fff; }
 .btn-danger { background-color: var(--danger-fill); color: #fff; }
 .btn-warn { background-color: var(--warn-fill); color: #000; }
-.btn-neutral { background-color: var(--surface2); color: var(--text); border: 1px solid var(--border); }
+.btn-neutral { background-color: var(--surface2); color: var(--text); }
 
 .btn-row { display: flex; flex-wrap: wrap; gap: 0.6rem; margin-top: 1rem; }
 
@@ -535,7 +587,10 @@ pre {
   max-height: 80px;
   overflow-y: auto;
   background-color: var(--surface2);
-  border: 1px solid var(--border);
+  /* Focusable scrolling region: `--border-strong`, not `--border`. Its fill is
+     within 1.10:1 of the exhibit around it, so the edge is the only thing
+     saying where the readout starts, and `--border` draws it at 1.32:1. */
+  border: 1px solid var(--border-strong);
   border-radius: 6px;
   padding: 0.5rem;
   margin-top: 0.4rem;
@@ -574,6 +629,12 @@ pre {
   color: var(--text-muted);
 }
 .narrative strong { color: var(--text); }
+/* The message a forgery targets is echoed back verbatim from the Message input,
+   so it can be an unbroken 90-character token nobody chose to make breakable.
+   Without this it pushed the DOCUMENT to 658px at a 380px viewport (WCAG 1.4.10)
+   — `anywhere`, not `break-word`, because `break-word` only breaks a word that
+   is alone on its line and this one sits mid-sentence between quotation marks. */
+#forged-msg { overflow-wrap: anywhere; }
 
 /* ── Arc diagram ───────────────────────────────────────────────────────── */
 .arc-grid {
