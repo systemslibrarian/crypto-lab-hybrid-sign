@@ -1,3 +1,4 @@
+import { ml_dsa65 } from '@noble/post-quantum/ml-dsa.js';
 import { describe, it, expect } from 'vitest';
 import { sha512 } from '@noble/hashes/sha2.js';
 import {
@@ -229,5 +230,37 @@ describe('break scenarios', () => {
     const r = simulateDoubleBreak(victim, MSG);
     const stranger = compositePublicKeyFrom(generateCompositeKeyPair());
     expect(compositeVerify(stranger, r.forgedMessage, r.forgedSignature).valid).toBe(false);
+  });
+});
+
+// Model only ML-DSA key compromise. The attacker receives a prior signature,
+// public key and ML-DSA secret; the helper never receives the Ed25519 secret.
+describe('new-message versus same-message forgery', () => {
+  it('accepts a replacement on the signed message but rejects a new message and context', () => {
+    const kp = generateCompositeKeyPair();
+    const pub = compositePublicKeyFrom(kp);
+    const message = enc('already approved');
+    const ctx = enc('document-signing');
+    const original = compositeSign(kp, message, ctx);
+    const replacePq = (prior: Uint8Array, pqSecret: Uint8Array, msg: Uint8Array) => {
+      const result = prior.slice();
+      result.set(ml_dsa65.sign(buildCompositeMessage(msg, ctx), pqSecret, {
+        context: COMPOSITE_LABEL_BYTES,
+        extraEntropy: new Uint8Array(32).fill(0x42),
+      }), 0);
+      return result;
+    };
+    const replacement = replacePq(original, kp.mldsa.privateKey, message);
+    expect(replacement).not.toEqual(original);
+    expect(replacement.slice(ML_DSA_65.signatureBytes)).toEqual(original.slice(ML_DSA_65.signatureBytes));
+    expect(compositeVerify(pub, message, replacement, ctx)).toEqual({
+      valid: true, ed25519Valid: true, mldsaValid: true,
+    });
+    expect(compositeVerify(pub, message, replacement, enc('other-context')).valid).toBe(false);
+    const newMessage = enc('never approved');
+    const freshForgery = replacePq(original, kp.mldsa.privateKey, newMessage);
+    expect(compositeVerify(pub, newMessage, freshForgery, ctx)).toEqual({
+      valid: false, ed25519Valid: false, mldsaValid: true,
+    });
   });
 });

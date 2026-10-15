@@ -183,7 +183,7 @@ function renderApp(): void {
   </div>
   <aside class="cl-hero-why" aria-label="Why it matters">
     <span class="cl-hero-why-label">WHY IT MATTERS</span>
-    <p class="cl-hero-why-text">Signatures made today may need to verify for decades, well past the arrival of quantum computers. Binding a classical and a post-quantum algorithm together keeps a document authentic even if one entire family is later broken.</p>
+    <p class="cl-hero-why-text">Signatures made today may need to verify for decades, well past the arrival of quantum computers. Combining classical and post-quantum signatures protects against signing a new message after one component is broken, provided the other remains secure and the prehash remains collision resistant.</p>
   </aside>
 </header>
 
@@ -192,9 +192,9 @@ function renderApp(): void {
   <p class="primer-hook">
     A <strong>composite signature</strong> is two signatures stapled together — one
     made with <span class="ed">today&rsquo;s crypto</span>, one
-    <span class="pq">quantum-proof</span> — and a message is trusted only if
-    <strong>BOTH</strong> check out. Forging it means breaking two unrelated kinds of
-    math at once.
+    <span class="pq">post-quantum</span> — and a message is trusted only if
+    <strong>BOTH</strong> check out. Forging a <strong>new message</strong> requires defeating both components
+    or finding a collision in the message prehash.
   </p>
   <p class="primer-caption">
     Formally: PQ/T composite per IETF LAMPS <span class="nowrap">draft-ietf-lamps-pq-composite-sigs-16</span>,
@@ -376,6 +376,16 @@ function renderApp(): void {
     Each simulation builds a real forgery over
     &ldquo;<em id="forged-msg">&mdash;</em>&rdquo; &mdash; your message with the attacker&rsquo;s
     addition &mdash; under the same context, and feeds it to the real verifier.
+  </p>
+
+  <p class="narrative" id="signature-security-scope">
+    <strong>New message versus new signature:</strong> these scenarios test new-message forgery
+    (EUF-CMA). Strong unforgeability (SUF-CMA) also forbids a different valid signature for an
+    already-signed message. After one component is compromised, an attacker can reuse the intact
+    signature and replace the compromised component on that same message. Both checks can pass;
+    this does not authorize a different message. Applications requiring SUF-CMA should not use
+    Composite ML-DSA. See <a href="https://datatracker.ietf.org/doc/html/draft-ietf-lamps-pq-composite-sigs-16#section-9.2.2">draft-16 §9.2.2</a> and the
+    <a href="https://mailarchive.ietf.org/arch/msg/cfrg/HaPTmTOFZSBSjw1vbhXCeya0tH8/">CFRG discussion, 14 October 2026</a>, which is not an adoption call or a final standard.
   </p>
 
   <details class="method-note">
