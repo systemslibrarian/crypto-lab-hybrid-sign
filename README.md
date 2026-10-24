@@ -2,7 +2,7 @@
 
 ## What It Is
 
-Browser-based PQ/T Composite Signature demo implementing the Ed25519 + ML-DSA-65 hybrid per IETF LAMPS `draft-ietf-lamps-pq-composite-sigs-16` (April 2026). Combines a classical Ed25519 signature with a post-quantum ML-DSA-65 signature such that **both must verify** for the composite to be valid. Uses `@noble/curves` for Ed25519 and `@noble/post-quantum` for ML-DSA-65. Demonstrates, by running them, the two break scenarios the scheme defends against: catastrophic ML-DSA cryptanalysis (classical) and quantum computer compromise of Ed25519. Shows the residual risk of simultaneous double breaks honestly — composites provide defense in depth, not invincibility.
+Browser-based PQ/T Composite Signature demo implementing the Ed25519 + ML-DSA-65 hybrid with IETF LAMPS `draft-ietf-lamps-pq-composite-sigs-16` (April 2026) as its construction baseline. Combines a classical Ed25519 signature with a post-quantum ML-DSA-65 signature such that **both must verify** for the composite to be valid. Uses `@noble/curves` for Ed25519 and `@noble/post-quantum` for ML-DSA-65. Demonstrates, by running them, the two break scenarios the scheme defends against: catastrophic ML-DSA cryptanalysis (classical) and quantum computer compromise of Ed25519. Shows the residual risk of simultaneous double breaks honestly — composites provide defense in depth, not invincibility.
 
 A composite signature combines an Ed25519 signature (classical, 128-bit security) with an ML-DSA-65 signature (post-quantum, ~192-bit security). Both must verify for the composite to be accepted. Forging a **new message** requires defeating both component signatures (assuming the message prehash remains collision resistant).
 
@@ -10,7 +10,9 @@ The demo opens with a plain-language hook (a composite signature is two signatur
 
 Key sizes: private 4,064 bytes · public 1,984 bytes · signature 3,373 bytes  
 Algorithm identifier: `COMPSIG-MLDSA65-Ed25519-SHA512`  
-TLS 1.3 codepoint: `0x090B (mldsa65_ed25519)`
+TLS 1.3 proposal: `mldsa65_ed25519_sha512 (TBD7; no assigned codepoint)`
+
+**TLS standards status — checked 24 October 2026:** This executable lab remains pinned to the older LAMPS draft-16 construction. The separate TLS working-group Internet-Draft [draft-ietf-tls-composite-mldsa-00](https://datatracker.ietf.org/doc/draft-ietf-tls-composite-mldsa/00/) is dated 20 October 2026 and was last updated 23 October. It proposes `mldsa65_ed25519_sha512` with placeholder `TBD7`; the [IANA TLS SignatureScheme registry](https://www.iana.org/assignments/tls-parameters/tls-parameters.xhtml#tls-signaturescheme) has not assigned it a value. The TLS draft is an active working-group Internet-Draft, not a final standard. It references LAMPS draft-19, so this lab does not claim conformance to that newer construction revision.
 
 ## When to Use It
 
@@ -40,7 +42,7 @@ Generate a composite keypair with its Ed25519 and ML-DSA-65 component keys side 
 
 ## Real-World Usage
 
-Composite PQ/T signatures are being standardized by the IETF LAMPS working group in `draft-ietf-lamps-pq-composite-sigs-16` (April 2026) for X.509 certificates and CMS signed data. TLS 1.3 SignatureScheme codepoints have been assigned: `mldsa44_ed25519 (0x090A)` and `mldsa65_ed25519 (0x090B)`. SSH has a separate draft `draft-josefsson-ssh-ed25519mldsa65-01` (October 2025). Major PKI vendors (Entrust, DigiCert) have prototyped composite CA issuance. Microsoft announced composite signature support for Windows code signing in 2026. The scheme is designed for the migration period (~2025–2035) while PQ crypto earns decades of cryptanalytic confidence.
+The April 2026 IETF LAMPS `draft-ietf-lamps-pq-composite-sigs-16` revision is the older composite construction implemented by this lab for its X.509-oriented baseline; the LAMPS draft series has since advanced. TLS negotiation is being proposed separately in the active TLS working-group Internet-Draft `draft-ietf-tls-composite-mldsa-00`: it names `mldsa65_ed25519_sha512` but still uses placeholder `TBD7`, and IANA has not assigned a SignatureScheme value. SSH has a separate draft `draft-josefsson-ssh-ed25519mldsa65-01` (October 2025). Major PKI vendors (Entrust, DigiCert) have prototyped composite CA issuance. Microsoft announced composite signature support for Windows code signing in 2026. The scheme is designed for the migration period (~2025–2035) while PQ crypto earns decades of cryptanalytic confidence.
 
 ## How to Run Locally
 
@@ -61,7 +63,7 @@ npm run dev
 
 ## The Five Exhibits
 
-A plain-language **primer** sits above the exhibits: a one-sentence hook, a small caption demoting the standards nomenclature (LAMPS draft-16, TLS `0x090B`), and a live **two-lock AND-gate diagram** (message M → classical Ed25519 lock + post-quantum ML-DSA-65 lock → AND gate → ACCEPT/REJECT) that lights green/red from the real verifier's output as you use Exhibits 2 and 3.
+A plain-language **primer** sits above the exhibits: a one-sentence hook, a dated standards-status note distinguishing the lab's LAMPS draft-16 construction baseline from the TLS draft's pending `TBD7` assignment, and a live **two-lock AND-gate diagram** (message M → classical Ed25519 lock + post-quantum ML-DSA-65 lock → AND gate → ACCEPT/REJECT) that lights green/red from the real verifier's output as you use Exhibits 2 and 3.
 
 1. **Composite Keypair** — Live generation showing Ed25519 and ML-DSA-65 component keys side by side with sizes and security properties
 2. **Sign and Verify** — Step-by-step composite signing with each term of the M′ = Prefix ‖ Label ‖ len(ctx) ‖ ctx ‖ SHA-512(M) representative glossed inline (domain-separator prefix, algorithm label, caller context, pre-hash), the 3,373-byte signature drawn as two labelled halves (ML-DSA 3,309 B ‖ Ed25519 64 B) whose bytes flip in place when tampered, plus per-component verification with tamper and copy-hex buttons
@@ -81,9 +83,12 @@ Targets WCAG 2.1 AA. Every text/background pair clears 4.5:1 in **both** light a
 
 ```
 npm test
+npm run test:a11y
 ```
 
 Vitest unit tests covering: spec prefix/label/size constants, the `Prefix ‖ Label ‖ len(ctx) ‖ ctx ‖ SHA-512(M)` message representative (including the 255-byte context guard), clean round-trip, context binding, message binding, wrong-length rejection, per-component tamper detection, and the break scenarios (the no-break baseline is caught by both halves, both single breaks reject, the double break is genuinely forged and re-verifies on the exact bytes produced, and a forgery is bound to its context and its keypair). A same-message regression replaces only the compromised ML-DSA component, retains the original Ed25519 bytes, and checks acceptance for the original message plus rejection for a new message or context. A boot-time self-test also logs a sign/verify/tamper round-trip to the browser console.
+
+The Playwright gate drives signing, verification, tampering, all four break scenarios, reflow and accessibility states. It also checks that the rendered standards note and this README describe the TLS assignment as pending, link the primary IETF/IANA sources, and contain no claim that the former numeric values are assigned.
 
 ## The crypto-lab Suite
 

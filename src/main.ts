@@ -178,7 +178,7 @@ function renderApp(): void {
 <header id="main-content" class="cl-hero" tabindex="-1">
   <div class="cl-hero-main">
     <h1 class="cl-hero-title"><span class="ed">Ed25519</span><span class="plus"> + </span><span class="pq">ML-DSA-65</span></h1>
-    <p class="cl-hero-sub">PQ/T Composite · IETF LAMPS draft-16 · TLS 0x090B</p>
+    <p class="cl-hero-sub">PQ/T Composite · LAMPS draft-16 baseline · TLS assignment pending</p>
     <p class="cl-hero-desc">Generate a hybrid keypair, sign a message with both algorithms at once, then tamper with or break either half to watch the composite verifier accept only when Ed25519 <em>and</em> ML-DSA-65 both check out.</p>
   </div>
   <aside class="cl-hero-why" aria-label="Why it matters">
@@ -197,8 +197,19 @@ function renderApp(): void {
     or finding a collision in the message prehash.
   </p>
   <p class="primer-caption">
-    Formally: PQ/T composite per IETF LAMPS <span class="nowrap">draft-ietf-lamps-pq-composite-sigs-16</span>,
-    TLS codepoint <code>0x090B</code> (mldsa65_ed25519). Those names are unpacked as you go.
+    Construction baseline: IETF LAMPS <span class="nowrap">draft-ietf-lamps-pq-composite-sigs-16</span>.
+    That construction document is separate from the newer TLS deployment proposal.
+  </p>
+  <p class="standards-note" id="tls-standards-status">
+    <strong>TLS status &mdash; checked 24 October 2026:</strong>
+    the active TLS working-group Internet-Draft
+    <a href="https://datatracker.ietf.org/doc/draft-ietf-tls-composite-mldsa/00/" target="_blank" rel="noreferrer"><span class="nowrap">draft-ietf-tls-composite-mldsa-00</span></a>
+    (dated 20 October; last updated 23 October) proposes
+    <code>mldsa65_ed25519_sha512</code> with placeholder <code>TBD7</code>.
+    <a href="https://www.iana.org/assignments/tls-parameters/tls-parameters.xhtml#tls-signaturescheme" target="_blank" rel="noreferrer">IANA&rsquo;s TLS SignatureScheme registry</a>
+    has not assigned it a value. This is work in progress, not a final standard.
+    The TLS draft references LAMPS draft-19; this lab demonstrates the older draft-16
+    construction and does not claim draft-19 conformance.
   </p>
 
   <!-- The mechanism, drawn: two parallel locks feeding one AND gate. -->
@@ -285,7 +296,7 @@ function renderApp(): void {
       <div class="size-row"><span>Combined public key</span><span class="size-val">${ED25519.publicKeyBytes + ML_DSA_65.publicKeyBytes} bytes</span></div>
       <div class="size-row"><span>Composite signature</span><span class="size-val">${COMPOSITE_SIG_BYTES} bytes (ML-DSA ${ML_DSA_65.signatureBytes}B + Ed25519 ${ED25519.signatureBytes}B)</span></div>
       <div class="size-row"><span>Algorithm identifier</span><span class="size-val">${COMPOSITE_LABEL}</span></div>
-      <div class="size-row"><span>TLS 1.3 codepoint</span><span class="size-val">0x090B (mldsa65_ed25519)</span></div>
+      <div class="size-row"><span>TLS 1.3 proposal</span><span class="size-val">mldsa65_ed25519_sha512 (TBD7; unassigned)</span></div>
     </div>
   </div>
 </section>
@@ -504,11 +515,12 @@ function renderApp(): void {
   </div>
 
   <div style="margin-top:1rem">
-    <h3 style="font-size:0.88rem;margin-bottom:0.6rem;color:var(--text-muted)">TLS 1.3 SignatureScheme registry</h3>
-    <pre role="region" aria-label="TLS 1.3 SignatureScheme registry codepoints (scrollable)" tabindex="0">0x090A: mldsa44_ecdsa_secp256r1_sha256   (Level 2 + P-256)
-0x090B: mldsa65_ed25519                   (Level 3 + Ed25519) ← this demo
-SSH:    ssh-ed25519-ml-dsa-65             (draft-josefsson-ssh-ed25519mldsa65)
-X.509:  id-MLDSA65-Ed25519-SHA512         (draft-ietf-lamps-pq-composite-sigs-16)</pre>
+    <h3 style="font-size:0.88rem;margin-bottom:0.6rem;color:var(--text-muted)">TLS 1.3 proposal and registry status</h3>
+    <pre role="region" aria-label="TLS 1.3 proposal and registry status (scrollable)" tabindex="0">TLS draft-00: mldsa44_ed25519_sha512  → TBD6
+TLS draft-00: mldsa65_ed25519_sha512  → TBD7  ← this pairing
+IANA registry: no value assigned (checked 2026-10-24)
+SSH draft:    ssh-ed25519-ml-dsa-65
+X.509 baseline: id-MLDSA65-Ed25519-SHA512 (LAMPS draft-16)</pre>
   </div>
 </section>
 
@@ -543,10 +555,14 @@ X.509:  id-MLDSA65-Ed25519-SHA512         (draft-ietf-lamps-pq-composite-sigs-16
   </div>
 
   <h3 style="font-size:0.88rem;margin:1rem 0 0.6rem">Real-world deployment</h3>
-  <p class="narrative">
-    IETF LAMPS <strong>draft-ietf-lamps-pq-composite-sigs-16</strong> (April 2026) standardizes
-    composite signatures for X.509 and CMS. TLS 1.3 has codepoints <code>0x090A</code> and
-    <code>0x090B</code>. SSH has <strong>draft-josefsson-ssh-ed25519mldsa65-01</strong>. PKI
+  <p class="narrative" id="deployment-status">
+    The April 2026 IETF LAMPS <strong>draft-ietf-lamps-pq-composite-sigs-16</strong>
+    revision is the older construction baseline implemented in this lab; the LAMPS draft
+    series has since advanced. TLS use is a separate work-in-progress proposal:
+    <strong>draft-ietf-tls-composite-mldsa-00</strong> names
+    <code>mldsa65_ed25519_sha512</code> but still uses placeholder <code>TBD7</code>;
+    IANA has not assigned a TLS SignatureScheme value. SSH has
+    <strong>draft-josefsson-ssh-ed25519mldsa65-01</strong>. PKI
     vendors Entrust and DigiCert have prototyped composite CA issuance. Microsoft announced
     composite signature support in Windows code-signing for 2026. The scheme is designed for
     the migration period (~2025–2035) while PQ crypto earns decades of cryptanalytic confidence.
@@ -559,7 +575,7 @@ X.509:  id-MLDSA65-Ed25519-SHA512         (draft-ietf-lamps-pq-composite-sigs-16
     <span class="chip">@noble/curves Ed25519</span>
     <span class="chip">@noble/post-quantum ML-DSA-65</span>
     <span class="chip">IETF LAMPS draft-16</span>
-    <span class="chip">TLS 0x090B</span>
+    <span class="chip">TLS codepoint pending</span>
   </p>
   <p style="margin-top:0.4rem">
     Related demos:

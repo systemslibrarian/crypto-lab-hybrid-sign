@@ -147,6 +147,21 @@ body { min-height: 100vh; }
   background-color: color-mix(in srgb, var(--composite-ok) 12%, transparent);
   border-radius: 3px; padding: 0 0.25em;
 }
+.standards-note {
+  margin-top: 0.8rem;
+  font-size: 0.8rem;
+  line-height: 1.6;
+  color: var(--text-muted);
+}
+.standards-note strong { color: var(--text); }
+.standards-note a { color: var(--ed-color); }
+.standards-note code {
+  font-family: ui-monospace, monospace;
+  background-color: color-mix(in srgb, var(--composite-ok) 12%, transparent);
+  border-radius: 3px;
+  padding: 0 0.25em;
+  overflow-wrap: anywhere;
+}
 .nowrap { white-space: nowrap; }
 
 /* Two-lock AND-gate figure */

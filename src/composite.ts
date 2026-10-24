@@ -28,7 +28,8 @@ export const COMPOSITE_PREFIX = new TextEncoder().encode(
 
 /**
  * Domain separator / ML-DSA context label.
- * Per draft-16 for the id-MLDSA65-Ed25519-SHA512 OID / TLS codepoint 0x090B.
+ * Per LAMPS draft-16 for the id-MLDSA65-Ed25519-SHA512 algorithm. TLS
+ * negotiation is specified separately and still has a pending assignment.
  */
 export const COMPOSITE_LABEL = 'COMPSIG-MLDSA65-Ed25519-SHA512';
 export const COMPOSITE_LABEL_BYTES = new TextEncoder().encode(COMPOSITE_LABEL);
