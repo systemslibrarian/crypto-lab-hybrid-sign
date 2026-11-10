@@ -9,6 +9,13 @@ const IANA_REGISTRY =
 test('rendered standards note reports the pending TLS assignment', async ({ page }) => {
   await page.goto('.');
 
+  const baseline = page.locator('.primer-caption');
+  await expect(baseline).toContainText('RFC 10073');
+  await expect(baseline).toContainText('November 2026, Proposed Standard');
+  await expect(baseline).toContainText('older draft-16 construction');
+  await expect(baseline).toContainText('has not been verified for RFC 10073 conformance');
+  await expect(baseline.locator('a[href="https://www.rfc-editor.org/info/rfc10073/"]')).toHaveCount(1);
+
   const note = page.locator('#tls-standards-status');
   await expect(note).toBeVisible();
   await expect(note).toContainText('checked 24 October 2026');
@@ -33,6 +40,8 @@ test('README distinguishes the LAMPS baseline from the pending TLS proposal', ()
   const readme = readFileSync(new URL('../README.md', import.meta.url), 'utf8');
 
   expect(readme).toContain('LAMPS draft-16 construction');
+  expect(readme).toContain('https://www.rfc-editor.org/info/rfc10073/');
+  expect(readme).toContain('has not been verified for RFC 10073 conformance');
   expect(readme).toContain('active working-group Internet-Draft, not a final standard');
   expect(readme).toContain('does not claim conformance to that newer construction revision');
   expect(readme).toContain('mldsa65_ed25519_sha512');

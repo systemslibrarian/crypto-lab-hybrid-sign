@@ -12,6 +12,8 @@ Key sizes: private 4,064 bytes · public 1,984 bytes · signature 3,373 bytes
 Algorithm identifier: `COMPSIG-MLDSA65-Ed25519-SHA512`  
 TLS 1.3 proposal: `mldsa65_ed25519_sha512 (TBD7; no assigned codepoint)`
 
+**X.509 standards status — reviewed 10 November 2026:** [RFC 10073](https://www.rfc-editor.org/info/rfc10073/) (November 2026, Proposed Standard) now specifies Composite ML-DSA for X.509. This demo retains its older draft-16 construction; it has not been verified for RFC 10073 conformance and implements no X.509 or CMS encoding. RFC publication does not assign a TLS SignatureScheme value.
+
 **TLS standards status — checked 24 October 2026:** This executable lab remains pinned to the older LAMPS draft-16 construction. The separate TLS working-group Internet-Draft [draft-ietf-tls-composite-mldsa-00](https://datatracker.ietf.org/doc/draft-ietf-tls-composite-mldsa/00/) is dated 20 October 2026 and was last updated 23 October. It proposes `mldsa65_ed25519_sha512` with placeholder `TBD7`; the [IANA TLS SignatureScheme registry](https://www.iana.org/assignments/tls-parameters/tls-parameters.xhtml#tls-signaturescheme) has not assigned it a value. The TLS draft is an active working-group Internet-Draft, not a final standard. It references LAMPS draft-19, so this lab does not claim conformance to that newer construction revision.
 
 ## When to Use It
@@ -21,7 +23,7 @@ TLS 1.3 proposal: `mldsa65_ed25519_sha512 (TBD7; no assigned codepoint)`
 - Evaluating composite signatures for X.509 code-signing, CA hierarchies, SSH identity keys that must last 10+ years
 - Comparing composite signatures to hybrid KEMs (different primitives, same philosophy)
 - **Not for:** short-lived session tokens, JWT tokens (use ML-DSA alone once your stack supports it), situations where signature size is constrained (composites are 3,373 bytes vs 64 bytes classical-only)
-- Do NOT deploy this code in production — it is a teaching demo of the composite construction; use a vetted library tracking the LAMPS composite-signatures draft.
+- Do NOT deploy this code in production — it is a teaching demo of the composite construction; use a vetted implementation of the applicable published specification and protocol profile.
 
 ## Live Demo
 
@@ -42,7 +44,7 @@ Generate a composite keypair with its Ed25519 and ML-DSA-65 component keys side 
 
 ## Real-World Usage
 
-The April 2026 IETF LAMPS `draft-ietf-lamps-pq-composite-sigs-16` revision is the older composite construction implemented by this lab for its X.509-oriented baseline; the LAMPS draft series has since advanced. TLS negotiation is being proposed separately in the active TLS working-group Internet-Draft `draft-ietf-tls-composite-mldsa-00`: it names `mldsa65_ed25519_sha512` but still uses placeholder `TBD7`, and IANA has not assigned a SignatureScheme value. SSH has a separate draft `draft-josefsson-ssh-ed25519mldsa65-01` (October 2025). Major PKI vendors (Entrust, DigiCert) have prototyped composite CA issuance. Microsoft announced composite signature support for Windows code signing in 2026. The scheme is designed for the migration period (~2025–2035) while PQ crypto earns decades of cryptanalytic confidence.
+The April 2026 IETF LAMPS `draft-ietf-lamps-pq-composite-sigs-16` revision is the older composite construction implemented by this lab for its X.509-oriented baseline; [RFC 10073](https://www.rfc-editor.org/info/rfc10073/) (November 2026, Proposed Standard) is now the published X.509 specification, but this demo does not claim conformance to it. TLS negotiation is being proposed separately in the active TLS working-group Internet-Draft `draft-ietf-tls-composite-mldsa-00`: it names `mldsa65_ed25519_sha512` but still uses placeholder `TBD7`, and IANA has not assigned a SignatureScheme value. SSH has a separate draft `draft-josefsson-ssh-ed25519mldsa65-01` (October 2025). Major PKI vendors (Entrust, DigiCert) have prototyped composite CA issuance. Microsoft announced composite signature support for Windows code signing in 2026. The scheme is designed for the migration period (~2025–2035) while PQ crypto earns decades of cryptanalytic confidence.
 
 ## How to Run Locally
 

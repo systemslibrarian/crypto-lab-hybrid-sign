@@ -198,7 +198,10 @@ function renderApp(): void {
   </p>
   <p class="primer-caption">
     Construction baseline: IETF LAMPS <span class="nowrap">draft-ietf-lamps-pq-composite-sigs-16</span>.
-    That construction document is separate from the newer TLS deployment proposal.
+    The X.509 specification is now <a href="https://www.rfc-editor.org/info/rfc10073/">RFC 10073</a>
+    (November 2026, Proposed Standard). This demo retains its older draft-16 construction;
+    it has not been verified for RFC 10073 conformance and implements no X.509 or CMS encoding.
+    TLS deployment is a separate proposal.
   </p>
   <p class="standards-note" id="tls-standards-status">
     <strong>TLS status &mdash; checked 24 October 2026:</strong>
@@ -509,7 +512,7 @@ function renderApp(): void {
       <tr><th scope="row">Classical security</th><td class="ed-col">128 bits</td><td class="pq-col">~192 bits</td><td class="comp-col">~192 bits (min)</td></tr>
       <tr><th scope="row">PQ security</th><td class="ed-col" style="color:var(--danger)">0 (broken by Shor)</td><td class="pq-col">~192 bits</td><td class="comp-col">~192 bits</td></tr>
       <tr><th scope="row">Survives single break</th><td class="ed-col" style="color:var(--danger)">No</td><td class="pq-col" style="color:var(--danger)">No</td><td class="comp-col" style="color:var(--success)"><strong>Yes</strong></td></tr>
-      <tr><th scope="row">Standardization</th><td class="ed-col">RFC 8032</td><td class="pq-col">FIPS 204</td><td class="comp-col">IETF LAMPS draft-16</td></tr>
+      <tr><th scope="row">Standardization</th><td class="ed-col">RFC 8032</td><td class="pq-col">FIPS 204</td><td class="comp-col">RFC 10073 published; demo uses draft-16</td></tr>
     </tbody>
   </table>
   </div>
@@ -557,8 +560,9 @@ X.509 baseline: id-MLDSA65-Ed25519-SHA512 (LAMPS draft-16)</pre>
   <h3 style="font-size:0.88rem;margin:1rem 0 0.6rem">Real-world deployment</h3>
   <p class="narrative" id="deployment-status">
     The April 2026 IETF LAMPS <strong>draft-ietf-lamps-pq-composite-sigs-16</strong>
-    revision is the older construction baseline implemented in this lab; the LAMPS draft
-    series has since advanced. TLS use is a separate work-in-progress proposal:
+    revision is the older construction baseline implemented in this lab.
+    <a href="https://www.rfc-editor.org/info/rfc10073/">RFC 10073</a> (November 2026)
+    now specifies Composite ML-DSA for X.509 as a Proposed Standard; this demo does not claim RFC conformance. TLS use is a separate work-in-progress proposal:
     <strong>draft-ietf-tls-composite-mldsa-00</strong> names
     <code>mldsa65_ed25519_sha512</code> but still uses placeholder <code>TBD7</code>;
     IANA has not assigned a TLS SignatureScheme value. SSH has
