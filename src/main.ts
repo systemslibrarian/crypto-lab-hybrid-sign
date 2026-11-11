@@ -198,9 +198,13 @@ function renderApp(): void {
   </p>
   <p class="primer-caption">
     Construction baseline: IETF LAMPS <span class="nowrap">draft-ietf-lamps-pq-composite-sigs-16</span>.
-    The X.509 specification is now <a href="https://www.rfc-editor.org/info/rfc10073/">RFC 10073</a>
-    (November 2026, Proposed Standard). This demo retains its older draft-16 construction;
-    it has not been verified for RFC 10073 conformance and implements no X.509 or CMS encoding.
+    Composite ML-DSA is published in TWO separate documents: the X.509 specification is
+    <a href="https://www.rfc-editor.org/info/rfc10073/">RFC 10073</a>
+    (November 2026, Proposed Standard), and CMS is the separate
+    <a href="https://www.rfc-editor.org/info/rfc10082/">RFC 10082</a> (November 2026).
+    RFC 10073 does not cover CMS. This demo retains its older draft-16 construction;
+    it has not been verified for RFC 10073 conformance, has not been verified for
+    RFC 10082 conformance, and implements no X.509 encoding and no CMS encoding.
     TLS deployment is a separate proposal.
   </p>
   <p class="standards-note" id="tls-standards-status">
