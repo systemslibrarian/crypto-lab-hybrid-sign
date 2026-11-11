@@ -15,6 +15,17 @@ test('rendered standards note reports the pending TLS assignment', async ({ page
   await expect(baseline).toContainText('older draft-16 construction');
   await expect(baseline).toContainText('has not been verified for RFC 10073 conformance');
   await expect(baseline.locator('a[href="https://www.rfc-editor.org/info/rfc10073/"]')).toHaveCount(1);
+  /* RFC 10073 is X.509 ONLY. CMS is the separate RFC 10082, and the page must not
+     let one stand for the other: the wording here previously paired "RFC 10073
+     conformance" with "no X.509 or CMS encoding", which reads as the X.509 RFC
+     covering CMS too. Both documents are named, each against its own encoding,
+     and the non-conformance is stated for each. */
+  await expect(baseline).toContainText('RFC 10082');
+  await expect(baseline).toContainText('RFC 10073 does not cover CMS');
+  await expect(baseline).toContainText('has not been verified for RFC 10082 conformance');
+  await expect(baseline.locator('a[href="https://www.rfc-editor.org/info/rfc10082/"]')).toHaveCount(1);
+  // No sentence may attach CMS to 10073 by juxtaposition again.
+  await expect(baseline).not.toContainText('no X.509 or CMS encoding');
 
   const note = page.locator('#tls-standards-status');
   await expect(note).toBeVisible();
@@ -42,6 +53,11 @@ test('README distinguishes the LAMPS baseline from the pending TLS proposal', ()
   expect(readme).toContain('LAMPS draft-16 construction');
   expect(readme).toContain('https://www.rfc-editor.org/info/rfc10073/');
   expect(readme).toContain('has not been verified for RFC 10073 conformance');
+  // Same distinction the rendered page must keep: 10073 is X.509, 10082 is CMS.
+  expect(readme).toContain('https://www.rfc-editor.org/info/rfc10082/');
+  expect(readme).toContain('has not been verified for RFC 10082 conformance');
+  expect(readme).toContain('one does not cover the other');
+  expect(readme).not.toContain('no X.509 or CMS encoding');
   expect(readme).toContain('active working-group Internet-Draft, not a final standard');
   expect(readme).toContain('does not claim conformance to that newer construction revision');
   expect(readme).toContain('mldsa65_ed25519_sha512');
