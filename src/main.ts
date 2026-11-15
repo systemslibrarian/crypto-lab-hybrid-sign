@@ -237,7 +237,7 @@ function renderApp(): void {
         <div class="mech-lock pq-lock" id="mech-lock-pq" data-lit="idle">
           <span class="mech-lock-icon" aria-hidden="true">🔒</span>
           <span class="mech-lock-name">ML-DSA-65</span>
-          <span class="mech-lock-kind">quantum-proof lock</span>
+          <span class="mech-lock-kind">post-quantum lock, believed secure</span>
           <span class="mech-lock-state" id="mech-state-pq">awaiting verify</span>
         </div>
       </div>
@@ -292,7 +292,7 @@ function renderApp(): void {
         <div class="key-row"><span class="key-label">Size</span>
           <span>${ML_DSA_65.privateKeyBytes}B / ${ML_DSA_65.publicKeyBytes}B</span></div>
         <div class="key-row"><span class="key-label">Security</span>
-          <span>~192-bit classical + PQ</span></div>
+          <span>Claimed NIST security category 3 (FIPS 204; no single bit figure)</span></div>
         <div class="key-row"><span class="key-label">Broken by</span>
           <span style="color:var(--success)">Nothing currently known</span></div>
       </div>
@@ -402,7 +402,7 @@ function renderApp(): void {
     already-signed message. After one component is compromised, an attacker can reuse the intact
     signature and replace the compromised component on that same message. Both checks can pass;
     this does not authorize a different message. Applications requiring SUF-CMA should not use
-    Composite ML-DSA. See <a href="https://datatracker.ietf.org/doc/html/draft-ietf-lamps-pq-composite-sigs-16#section-9.2.2">draft-16 §9.2.2</a> and the
+    Composite ML-DSA. See <a href="https://www.rfc-editor.org/rfc/rfc10073.html#section-9.2.2">RFC 10073 §9.2.2</a> and the
     <a href="https://mailarchive.ietf.org/arch/msg/cfrg/HaPTmTOFZSBSjw1vbhXCeya0tH8/">CFRG discussion, 14 October 2026</a>, which is not an adoption call or a final standard.
   </p>
 
@@ -443,7 +443,7 @@ function renderApp(): void {
         factoring (RSA) and discrete logs (Diffie-Hellman, ECDH, Ed25519). Lattice problems
         such as Module-LWE and Module-SIS, which ML-DSA-65 relies on, have no known reduction
         to period-finding, so Shor does not touch them; the best known quantum speedups are
-        modest (Grover-style) and are already priced in to the ~192-bit parameter set. This is
+        modest (Grover-style) and are already priced in to the category 3 parameter set (FIPS 204 assigns a security category, not a bit count). This is
         an <em>honest caveat, not a proof</em>: &ldquo;no known attack&rdquo; is not
         &ldquo;no possible attack,&rdquo; which is precisely why the composite keeps a second,
         independent lock rather than switching to ML-DSA alone. See the two sibling demos —
@@ -513,8 +513,8 @@ function renderApp(): void {
       <tr><th scope="row">Private key</th><td class="ed-col">32 B</td><td class="pq-col">4,032 B</td><td class="comp-col">4,064 B</td></tr>
       <tr><th scope="row">Public key</th><td class="ed-col">32 B</td><td class="pq-col">1,952 B</td><td class="comp-col">1,984 B</td></tr>
       <tr><th scope="row">Signature</th><td class="ed-col">64 B</td><td class="pq-col">3,309 B</td><td class="comp-col">${COMPOSITE_SIG_BYTES} B</td></tr>
-      <tr><th scope="row">Classical security</th><td class="ed-col">128 bits</td><td class="pq-col">~192 bits</td><td class="comp-col">~192 bits (min)</td></tr>
-      <tr><th scope="row">PQ security</th><td class="ed-col" style="color:var(--danger)">0 (broken by Shor)</td><td class="pq-col">~192 bits</td><td class="comp-col">~192 bits</td></tr>
+      <tr><th scope="row">Classical security</th><td class="ed-col">128 bits</td><td class="pq-col">Category 3 (claimed, FIPS 204)</td><td class="comp-col">At least Category 3 (both must be forged)</td></tr>
+      <tr><th scope="row">PQ security</th><td class="ed-col" style="color:var(--danger)">0 (broken by Shor)</td><td class="pq-col">Category 3 (claimed, FIPS 204)</td><td class="comp-col">Category 3 (claimed; ML-DSA-65 alone)</td></tr>
       <tr><th scope="row">Survives single break</th><td class="ed-col" style="color:var(--danger)">No</td><td class="pq-col" style="color:var(--danger)">No</td><td class="comp-col" style="color:var(--success)"><strong>Yes</strong></td></tr>
       <tr><th scope="row">Standardization</th><td class="ed-col">RFC 8032</td><td class="pq-col">FIPS 204</td><td class="comp-col">RFC 10073 published; demo uses draft-16</td></tr>
     </tbody>
@@ -571,8 +571,13 @@ X.509 baseline: id-MLDSA65-Ed25519-SHA512 (LAMPS draft-16)</pre>
     <code>mldsa65_ed25519_sha512</code> but still uses placeholder <code>TBD7</code>;
     IANA has not assigned a TLS SignatureScheme value. SSH has
     <strong>draft-josefsson-ssh-ed25519mldsa65-01</strong>. PKI
-    vendors Entrust and DigiCert have prototyped composite CA issuance. Microsoft announced
-    composite signature support in Windows code-signing for 2026. The scheme is designed for
+    vendors Entrust and DigiCert have prototyped composite CA issuance. Microsoft's
+    <a href="https://techcommunity.microsoft.com/blog/microsoft-security-blog/new-windows-features-to-secure-today%E2%80%99s-data-in-a-post-quantum-world/4523370">June 2026 Windows PQC update</a>
+    adds composite ML-DSA (ECDSA with ML-DSA) to the Windows cryptography APIs, and its
+    <a href="https://support.microsoft.com/en-us/servicing/os/windows/docs/2026/08/next-generation-code-signing">August 2026 code-signing notice</a>
+    says Windows signing moves to post-quantum signing in 2027 and &ldquo;might use new algorithms
+    and hybrid signature constructions&rdquo;; neither announces composite signatures for Windows
+    code signing. The scheme is designed for
     the migration period (~2025–2035) while PQ crypto earns decades of cryptanalytic confidence.
   </p>
 </section>
