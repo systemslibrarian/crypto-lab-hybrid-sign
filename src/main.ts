@@ -299,7 +299,7 @@ function renderApp(): void {
     </div>
 
     <div class="size-summary">
-      <div class="size-row"><span>Combined private key</span><span class="size-val">${ED25519.privateKeyBytes + ML_DSA_65.privateKeyBytes} bytes</span></div>
+      <div class="size-row"><span>Combined private key</span><span class="size-val" id="combined-priv-size">${ED25519.privateKeyBytes + ML_DSA_65.privateKeyBytes} bytes expanded (RFC 10073 serialises it as 64 bytes of seeds)</span></div>
       <div class="size-row"><span>Combined public key</span><span class="size-val">${ED25519.publicKeyBytes + ML_DSA_65.publicKeyBytes} bytes</span></div>
       <div class="size-row"><span>Composite signature</span><span class="size-val">${COMPOSITE_SIG_BYTES} bytes (ML-DSA ${ML_DSA_65.signatureBytes}B + Ed25519 ${ED25519.signatureBytes}B)</span></div>
       <div class="size-row"><span>Algorithm identifier</span><span class="size-val">${COMPOSITE_LABEL}</span></div>
@@ -510,7 +510,7 @@ function renderApp(): void {
       </tr>
     </thead>
     <tbody>
-      <tr><th scope="row">Private key</th><td class="ed-col">32 B</td><td class="pq-col">4,032 B</td><td class="comp-col">4,064 B</td></tr>
+      <tr><th scope="row">Private key</th><td class="ed-col">32 B (seed)</td><td class="pq-col">4,032 B (expanded)</td><td class="comp-col">4,064 B expanded; 64 B in RFC 10073's seed form</td></tr>
       <tr><th scope="row">Public key</th><td class="ed-col">32 B</td><td class="pq-col">1,952 B</td><td class="comp-col">1,984 B</td></tr>
       <tr><th scope="row">Signature</th><td class="ed-col">64 B</td><td class="pq-col">3,309 B</td><td class="comp-col">${COMPOSITE_SIG_BYTES} B</td></tr>
       <tr><th scope="row">Classical security</th><td class="ed-col">128 bits</td><td class="pq-col">Category 3 (claimed, FIPS 204)</td><td class="comp-col">At least Category 3 (both must be forged)</td></tr>
@@ -520,6 +520,16 @@ function renderApp(): void {
     </tbody>
   </table>
   </div>
+
+  <p class="narrative" id="privkey-form-note" style="margin-top:0.8rem">
+    <strong>Private keys here are the expanded form.</strong> <code>@noble/post-quantum</code> hands
+    this demo the 4,032-byte ML-DSA-65 secret key of FIPS 204, and it is stored beside the 32-byte
+    Ed25519 seed, so what the demo holds is 4,064 bytes.
+    <a href="https://www.rfc-editor.org/rfc/rfc10073.html#appendix-A">RFC 10073 Appendix A</a>
+    instead lists <strong>64 bytes</strong> for id-MLDSA65-Ed25519-SHA512, because Section 4 of
+    that RFC requires the ML-DSA private key to be &ldquo;the 32-byte seed value (&xi;)&rdquo;.
+    The public key (1,984 B) and the signature (3,373 B) match the RFC's row exactly.
+  </p>
 
   <div style="margin-top:1rem">
     <h3 style="font-size:0.88rem;margin-bottom:0.6rem;color:var(--text-muted)">TLS 1.3 proposal and registry status</h3>

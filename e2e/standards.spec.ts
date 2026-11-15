@@ -47,6 +47,41 @@ test('rendered standards note reports the pending TLS assignment', async ({ page
   await expect(deployment).toContainText('separate work-in-progress proposal');
 });
 
+/* The 4,064-byte private key is the EXPANDED key this demo holds (the 4,032-byte
+   FIPS 204 ML-DSA-65 secret key plus the 32-byte Ed25519 seed), not the figure
+   RFC 10073 Appendix A gives for id-MLDSA65-Ed25519-SHA512, which is 64 — Section 4
+   of that RFC requires the ML-DSA private key to be the 32-byte seed. Printing
+   4,064 beside the RFC-matching 1,984 and 3,373 read as a third RFC figure, so
+   every place that prints it must now say which serialization it is and name the
+   RFC's. */
+test('the private-key size is labelled expanded and carries the RFC seed figure', async ({
+  page,
+}) => {
+  await page.goto('.');
+
+  const compare = page.locator('table.compare-table');
+  await expect(compare).toContainText('4,064 B expanded');
+  await expect(compare).toContainText("64 B in RFC 10073's seed form");
+
+  const note = page.locator('#privkey-form-note');
+  await expect(note).toBeVisible();
+  await expect(note).toContainText('4,032-byte ML-DSA-65 secret key');
+  await expect(note).toContainText('32-byte Ed25519 seed');
+  await expect(note).toContainText('64 bytes');
+  await expect(note).toContainText('32-byte seed value');
+  await expect(
+    note.locator('a[href="https://www.rfc-editor.org/rfc/rfc10073.html#appendix-A"]'),
+  ).toHaveCount(1);
+
+  await expect(page.locator('#combined-priv-size')).toContainText(
+    '4064 bytes expanded (RFC 10073 serialises it as 64 bytes of seeds)',
+  );
+
+  // The bare figure must not stand anywhere as if the RFC gave it.
+  const body = await page.locator('body').innerText();
+  expect(body).not.toMatch(/4,064 B(?! expanded)/);
+});
+
 test('README distinguishes the LAMPS baseline from the pending TLS proposal', () => {
   const readme = readFileSync(new URL('../README.md', import.meta.url), 'utf8');
 
@@ -66,4 +101,14 @@ test('README distinguishes the LAMPS baseline from the pending TLS proposal', ()
   expect(readme).toContain(IANA_REGISTRY);
   expect(readme).not.toMatch(/0x090[AB]/i);
   expect(readme).not.toMatch(/codepoints? (?:have been|are) assigned/i);
+});
+
+test('README says which private-key serialization its 4,064 bytes is', () => {
+  const readme = readFileSync(new URL('../README.md', import.meta.url), 'utf8');
+
+  expect(readme).toContain("private 4,064 bytes expanded (64 bytes in RFC 10073's seed form)");
+  expect(readme).toContain('https://www.rfc-editor.org/rfc/rfc10073.html#appendix-A');
+  expect(readme).toContain('the 32-byte seed value (ξ)');
+  // No sentence may present 4,064 as the RFC's own figure again.
+  expect(readme).not.toMatch(/private 4,064 bytes(?! expanded)/);
 });
