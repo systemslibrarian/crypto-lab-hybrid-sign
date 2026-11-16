@@ -18,7 +18,7 @@ export { ED25519, ML_DSA_65 };
 // Per draft-ietf-lamps-pq-composite-sigs-16
 
 /**
- * Prefix per draft-ietf-lamps-pq-composite-sigs-16 Section 7.3.
+ * Prefix per draft-ietf-lamps-pq-composite-sigs-16 Section 2.2.
  * ASCII "CompositeAlgorithmSignatures2025"
  * Hex: 436F6D706F73697465416C676F726974686D5369676E61747572657332303235
  */
