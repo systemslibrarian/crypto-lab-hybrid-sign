@@ -78,9 +78,7 @@ function readContext(): Uint8Array | null {
 }
 
 function readMessage(): Uint8Array {
-  return new TextEncoder().encode(
-    el<HTMLInputElement>('sign-message').value || 'Paul Clark certified 2026'
-  );
+  return new TextEncoder().encode(el<HTMLInputElement>('sign-message').value);
 }
 
 function hexDisplay(bytes: Uint8Array, maxBytes = 32): string {
@@ -317,7 +315,8 @@ function renderApp(): void {
 
   <div class="field">
     <label for="sign-message">Message</label>
-    <input type="text" id="sign-message" value="Paul Clark certified 2026" />
+    <input type="text" id="sign-message" value="Paul Clark certified 2026" aria-describedby="sign-help" />
+    <small id="sign-help">Verify checks the last signature against the current message and context. An empty message is zero bytes.</small>
   </div>
   <div class="field">
     <label for="sign-context">Context (optional)</label>
@@ -615,9 +614,27 @@ X.509 baseline: id-MLDSA65-Ed25519-SHA512 (LAMPS draft-16)</pre>
 // ── Wire up events ─────────────────────────────────────────────────────────
 function wireEvents(): void {
   // Theme is owned by the shared crypto-lab header (in index.html).
+  let signingRevision = 0;
+  function clearVerification(): void {
+    hide('verify-result');
+    setMechanism(null, null, null);
+  }
+
+  for (const id of ['sign-message', 'sign-context']) {
+    const input = el<HTMLInputElement>(id);
+    let previous = input.value;
+    input.addEventListener('input', () => {
+      if (input.value === previous) return;
+      previous = input.value;
+      signingRevision++;
+      clearVerification();
+      if (id === 'sign-context') hide('ctx-error');
+    });
+  }
 
   // Exhibit 1 — generate keypair
   el('gen-keypair').addEventListener('click', () => {
+    signingRevision++;
     const btn = el<HTMLButtonElement>('gen-keypair');
     btn.disabled = true;
     btn.innerHTML = '<span class="spinner"></span>Generating…';
@@ -628,8 +645,7 @@ function wireEvents(): void {
       currentPublicKey = compositePublicKeyFrom(currentKeyPair);
       currentSignature = null;
       hide('sign-steps');
-      hide('verify-result');
-      setMechanism(null, null, null); // new keys — reset the AND-gate diagram to idle
+      clearVerification();
       el<HTMLButtonElement>('verify-btn').disabled = true;
       el<HTMLButtonElement>('tamper-mldsa-btn').disabled = true;
       el<HTMLButtonElement>('tamper-ed-btn').disabled = true;
@@ -669,25 +685,31 @@ function wireEvents(): void {
   // Exhibit 2 — sign
   el('sign-btn').addEventListener('click', () => {
     if (!currentKeyPair) return;
+    const ctx = readContext();
+    if (ctx === null) return;
+    const keyPair = currentKeyPair;
+    const msg = readMessage();
+    const revision = signingRevision;
     const btn = el<HTMLButtonElement>('sign-btn');
+    clearVerification();
     btn.disabled = true;
     btn.innerHTML = '<span class="spinner"></span>Signing…';
 
     setTimeout(() => {
-      const ctx = readContext();
-      if (ctx === null) {
+      if (revision !== signingRevision || keyPair !== currentKeyPair) {
         btn.disabled = false;
         btn.textContent = 'Sign with Composite';
         return;
       }
-      const msg = readMessage();
-
-      currentSignature = compositeSign(currentKeyPair!, msg, ctx);
+      currentSignature = compositeSign(keyPair, msg, ctx);
 
       setText('sig-len', String(currentSignature.length));
-      el('sig-hex').textContent = toHex(currentSignature.slice(0, 48)) + '…';
+      const hexEl = el('sig-hex');
+      hexEl.textContent = hexEl.classList.contains('expanded')
+        ? toHex(currentSignature)
+        : toHex(currentSignature.slice(0, 48)) + '…';
       renderSigStructure(currentSignature);
-      setMechanism(null, null, null); // fresh signature — locks await a verify
+      clearVerification();
       show('sign-steps');
 
       // Enable remaining buttons
